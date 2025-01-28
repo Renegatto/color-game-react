@@ -5,7 +5,6 @@ type SizePx = { x: number, y: number }
 type Color = { r: number, g: number, b: number }
 
 type Props = {
-  sizePx: SizePx,
   color: Color,
 }
 
@@ -18,7 +17,9 @@ type OngoingGameStateAlg<A> = {
   playing: A,
   ended(failed: boolean, difference: number): A,
 }
-type OngoingGameState = <A>(alg: OngoingGameStateAlg<A>) => A
+type OngoingGameState = {
+  match: <A>(alg: OngoingGameStateAlg<A>) => A
+}
 
 const randomColor = (): Color => {
   const randomComponent = (): number => Math.floor(Math.random() * 0xFF)
@@ -30,11 +31,10 @@ const randomColor = (): Color => {
 }
 
 export type GameProps = {
-  sizePx: SizePx,
   maxDifferenceToWin: number,
 }
 
-export const Game: FC<GameProps> = ({sizePx, maxDifferenceToWin}) => {
+export const Game: FC<GameProps> = ({maxDifferenceToWin}) => {
   // it can not be defined initially since the only way to obtain it is to
   // perform side-effect
   const [guessedColor, setGuessedColor] = useState<Color | undefined>()
@@ -52,7 +52,6 @@ export const Game: FC<GameProps> = ({sizePx, maxDifferenceToWin}) => {
     { guessedColor &&
       <GameRound
         key={gameId}
-        sizePx={sizePx}
         actualColor={guessedColor}
         restartGame={restartGame}
         maxDifferenceToWin={maxDifferenceToWin}
@@ -72,13 +71,12 @@ const closeTo = (maxDistance: number, color1: Color, color2: Color): [boolean, n
 }
 
 export const GameRound: FC<{
-  sizePx: SizePx,
   actualColor: Color,
   restartGame: () => void,
   maxDifferenceToWin: number,
-}> = ({sizePx, restartGame, actualColor, maxDifferenceToWin}) => {
+}> = ({restartGame, actualColor, maxDifferenceToWin}) => {
   const [gameState,setGameState] =
-    useState<OngoingGameState>(() => <A,>(alg: OngoingGameStateAlg<A>): A => alg.playing)
+    useState<OngoingGameState>(() => ({ match: alg => alg.playing }))
   const [pickedColor,setPickedColor] = useState<Color>(
     {r:0x88,g:0x88,b:0x88}
   )
@@ -88,23 +86,26 @@ export const GameRound: FC<{
       pickedColor,
       actualColor
     )
-    setGameState((_: OngoingGameState) => <A,>(alg: OngoingGameStateAlg<A>): A =>
-        alg.ended(!matches, difference)
+    setGameState(_ => ({
+      match: alg => alg.ended(!matches, difference)})
     )
-    // } else {
-    //   setGameState((_: OngoingGameState) => <A,>(alg: OngoingGameStateAlg<A>): A =>
-    //     alg.ended(true, difference))
-    // }
   }
   return <div>
     <ColorPicker
-      disabledWith={gameState({ended: () => actualColor, playing: undefined})}
+      disabledWith={
+        gameState.match({
+          ended: () => actualColor,
+          playing: undefined
+        })
+      }
       update={setPickedColor}
     />
-    { gameState({
+    { gameState.match({
       playing: <>
         <br/>
-        <ColoredBackground color={actualColor} sizePx={sizePx}/>
+        <div className="colored-background">
+          <ColoredBackground color={actualColor}/>
+        </div>
         <button type="button" style={{
           border:"2px solid black",
           backgroundColor: "#aa8888",
@@ -113,7 +114,9 @@ export const GameRound: FC<{
       </>,
       ended: (failed,difference) => <>
         {failed ? "Wrong!" : "Correct!"} difference is {Math.round(difference)}<br/>
-        <ColorsComparison color={actualColor} color2={pickedColor} sizePx={sizePx}/>
+        <div className="colored-background">
+          <ColorsComparison color={actualColor} color2={pickedColor}/>
+        </div>
         <button type="button" style={{
           border:"2px solid black",
           backgroundColor: "#aa8888",
@@ -123,17 +126,18 @@ export const GameRound: FC<{
   </div>
 }
 
-export const ColorsComparison: FC<Props & { color2: Color }> = ({ color, color2, sizePx }) =>
+export const ColorsComparison: FC<Props & { color2: Color }> = ({ color, color2 }) =>
   <>
-    <ColoredBackground color={color} sizePx={{x: sizePx.x, y: sizePx.y / 2}}/>
-    <ColoredBackground color={color2} sizePx={{x: sizePx.x, y: sizePx.y / 2}}/>
+    <div className="colored-background comparison">
+      <ColoredBackground color={color}/>
+    </div>
+    <div className="colored-background comparison">
+      <ColoredBackground color={color2}/>
+    </div>
   </>
-export const ColoredBackground: FC<Props> = ({ color, sizePx }: Props) =>
+export const ColoredBackground: FC<Props> = ({ color }: Props) =>
   <>
-    <div style={{
-      width: `${sizePx.x}px`,
-      height: `${sizePx.y}px`,
-      position: "relative",
+    <div className="colored-background background" style={{
       backgroundColor: colorToCode(color),
     }}> Color {colorToCode(color)}
     </div>
@@ -167,14 +171,9 @@ const ColorPicker: FC<{disabledWith?: Color, update: (color: Color) => void}> = 
     disabledWith === undefined ? <></> : child(disabledWith)
 
   const overlayOnDisabled =
-    <div style={{
-      backgroundColor: "#88888888",
-      width:"100%",
-      height: "100%",
-      position: "absolute",
-    }}/>
+    <div className={"color-picker overlay-on-disabled"}/>
 
-  return <div style={{width: "100%", height: "100%", overflow: "hidden", position: "relative"}}>
+  return <div className={"color-picker"}>
     {whenDisabled(_ => overlayOnDisabled)}
     {drawSlidersPair(setR, color => color.r, "R")}
     {drawSlidersPair(setG, color => color.g, "G")} 
@@ -201,7 +200,7 @@ const useDebounce = (delayMs: number): ((cont: () => void) => void) => {
 
 const GhostSlider: FC<{value?: number}> = ({value}) =>
   <>
-    <div className="slidecontainer" style={{width: "100%", height: "100%", overflow: "hidden", position: "relative"}}>
+    <div className="slidecontainer">
       <input
         type="range"
         disabled={true}
@@ -209,7 +208,7 @@ const GhostSlider: FC<{value?: number}> = ({value}) =>
         min="0"
         max="255"
         value={value}
-        className="ghostslider"
+        className="slider ghost"
       />
     </div>
   </>
@@ -235,8 +234,7 @@ const ColorSlider: FC<{disabled: boolean, onChange: (val: number) => void}> = ({
               debounce(() => change(newValue))
           }
         }
-        className="slider"
-        id="myRange"
+        className="slider normal"
       />
     </div>
   </>

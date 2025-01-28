@@ -61,7 +61,10 @@ export const GameRound: FC<{sizePx: SizePx, actualColor: Color, restartGame: () 
     }
   }
   return <div>
-    <ColorPicker disabled={gameState({ended: () => true, playing: false})} update={setPickedColor}/>
+    <ColorPicker
+      disabledWith={gameState({ended: () => actualColor, playing: undefined})}
+      update={setPickedColor}
+    />
     { gameState({
       playing: <>
         <br/>
@@ -101,37 +104,61 @@ export const ColoredBackground: FC<Props> = ({ color, sizePx }: Props) =>
     </div>
   </>
 
-const ColorPicker: FC<{disabled: boolean, update: (color: Color) => void}> = ({disabled,update}) => {
+const ColorPicker: FC<{disabledWith?: Color, update: (color: Color) => void}> = ({disabledWith,update}) => {
   const [r,setR] = useState(0)
   const [g,setG] = useState(0)
   const [b,setB] = useState(0)
   const currentColor: Color = {r,g,b}
+  const disabled = disabledWith != undefined
+  const drawGhostSlider = (pickColor: (color: Color) => number): ReactElement =>
+    whenDisabled(actual => GhostSlider(actual.r))
+  const whenDisabled = (child: (actualColor: Color) => ReactElement): ReactElement =>
+    disabledWith === undefined ? <></> : child(disabledWith)
   return <div style={{width: "100%", height: "100%", overflow: "hidden", position: "relative"}}>
-    {disabled ? <div style={{backgroundColor: "#88888888", width:"100%", height: "100%" , position: "absolute"}}></div> : <></>}
+    {whenDisabled(_ => <div style={{backgroundColor: "#88888888", width:"100%", height: "100%" , position: "absolute"}}/>)}
     R: <ColorSlider disabled={disabled} onChange={r => { setR(r); update(currentColor) }}/>
+    {drawGhostSlider(color => color.r)}
     G: <ColorSlider disabled={disabled} onChange={g => { setG(g); update(currentColor) }}/>
+    {drawGhostSlider(color => color.g)}
     B: <ColorSlider disabled={disabled} onChange={b => { setB(b); update(currentColor) }}/>
+    {drawGhostSlider(color => color.b)}
   </div>
 }
 
 const useDebounce = (delayMs: number): ((cont: () => void) => void) => {
-  const [cool,setCool] = useState(true)
-  const reset = (): void => {
-    setCool(false)
-    setTimeout(() => setCool(true),delayMs)
+  const [{cancel},setCancel] = useState({cancel: () => {}})
+  const updateWithDelay = (cont: () => void): void => {
+    cancel()
+    const timeout = setTimeout(
+      () => {
+        setCancel({ cancel: () => {} })
+        cont()
+      },
+      delayMs
+    )
+    setCancel({ cancel: () => clearTimeout(timeout) })
   }
-  return cont => {
-    if (cool) {
-      reset()
-      cont()
-    }
-  }
+  return updateWithDelay
 }
 
+
+const GhostSlider = (value: number): ReactElement => {
+  return <>
+    <div className="slidecontainer" style={{width: "100%", height: "100%", overflow: "hidden", position: "relative"}}>
+      <input
+        type="range"
+        disabled={true}
+        min="0"
+        max="255"
+        value={value}
+        className="ghostslider"
+      />
+    </div>
+  </>
+}
 const ColorSlider: FC<{disabled: boolean, onChange: (val: number) => void}> = ({disabled,onChange}) => {
   const [value,setValue] = useState(0)
-  const inputRef = useRef<HTMLInputElement>(null)
-  const debounce = useDebounce(300)
+  const debounce = useDebounce(10)
   const change = (val: number): void => {
     setValue(val)
     onChange(val)
@@ -139,15 +166,16 @@ const ColorSlider: FC<{disabled: boolean, onChange: (val: number) => void}> = ({
   return <>{value}
     <div className="slidecontainer">
       <input
-        ref={inputRef}
         type="range"
         disabled={disabled}
         min="0"
         max="255"
-        onInputCapture={
-          e => change(e.currentTarget.valueAsNumber)}
+        defaultValue={0}
         onChange={
-          e => debounce(() => change(e.currentTarget.valueAsNumber))
+          e => {
+              const newValue = e.currentTarget.valueAsNumber       
+              debounce(() => change(newValue))
+          }
         }
         className="slider"
         id="myRange"

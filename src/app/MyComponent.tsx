@@ -59,14 +59,16 @@ export const Game: FC<GameProps> = ({maxDifferenceToWin}) => {
   </>
 }
 
-const closeTo = (maxDistance: number, color1: Color, color2: Color): [boolean, number] => {
-  const sq = (a: number, b: number): number => Math.pow(a - b,2);
-  const distance = Math.sqrt(
-    sq(color1.r, color2.r)
-    + sq(color1.g, color2.g)
-    + sq(color1.b, color2.g)
-  )
-  return [maxDistance >= distance, distance]
+const eachIsClose = (maxDifference: number, color1: Color, color2: Color): [boolean, number] => {
+  const differences = [
+    color1.r - color2.r,
+    color1.g - color2.g,
+    color1.b - color2.b,
+  ].map(Math.abs)
+  return [
+    differences.every(diff => diff <= maxDifference),
+    differences.sort()[0]
+  ]
 }
 
 export const GameRound: FC<{
@@ -80,20 +82,20 @@ export const GameRound: FC<{
     {r:0x88,g:0x88,b:0x88}
   )
   const onPickColor = (): void => {
-    const [matches, difference] = closeTo(
+    const [matches, maxDifference] = eachIsClose(
       maxDifferenceToWin,
       pickedColor,
       actualColor
     )
     setGameState(_ => ({
-      match: alg => alg.ended(!matches, difference)})
+      match: alg => alg.ended(!matches, maxDifference)})
     )
   }
   return <div className="game-round">
     <ColorPicker
       disabledWith={
         gameState.match({
-          ended: () => actualColor,
+          ended: failed => ({actual: actualColor, won: !failed}),
           playing: undefined
         })
       }
@@ -114,7 +116,7 @@ export const GameRound: FC<{
         </button>
       </>,
       ended: (failed,difference) => <>
-        {failed ? "Wrong!" : "Correct!"} difference is {Math.round(difference)}<br/>
+        {failed ? "Wrong!" : "Correct!"} Difference is {Math.round(difference)}<br/>
         <div className="colored-background">
           <ColorsComparison color={actualColor} color2={pickedColor}/>
         </div>
@@ -149,7 +151,7 @@ export const ColoredBackground: FC<Props & {child: ReactElement}> = ({ color, ch
   </>
 
 type ColorPickerProps = {
-  disabledWith?: Color,
+  disabledWith?: {actual: Color, won: boolean},
   update: (color: Color) => void,
 }
 
@@ -162,7 +164,7 @@ const ColorPicker: FC<ColorPickerProps> = ({disabledWith,update}) => {
   const disabled = disabledWith != undefined
 
   const drawGhostSlider = (pickColor: (color: Color) => number): ReactElement =>
-    <GhostSlider value={disabledWith === undefined ? undefined : pickColor(disabledWith)}/>
+    <GhostSlider value={disabledWith === undefined ? undefined : pickColor(disabledWith.actual)}/>
   const drawColorSlider = (
     setColor: (color: number) => void,
     colorOf: (color: Color) => number,
@@ -184,17 +186,21 @@ const ColorPicker: FC<ColorPickerProps> = ({disabledWith,update}) => {
       {drawGhostSlider(colorOf)}
     </>
 
-  const whenDisabled = (child: (actualColor: Color) => ReactElement): ReactElement =>
-    disabledWith === undefined ? <></> : child(disabledWith)
+  const whenDisabled = (child: (won: boolean) => ReactElement): ReactElement =>
+    disabledWith === undefined
+      ? <></>
+      : child(disabledWith.won)
 
-  const overlayOnDisabled =
-    <div className={"color-picker overlay-on-disabled"}/>
+  const overlayOnDisabled = (won: boolean) =>
+    <div className={`color-picker ${
+      won ? "overlay-on-victory" : "overlay-on-defeat"
+    }`}/>
 
   return <div className={"color-picker"}>
     {drawSlidersPair(setR, color => color.r, "R")}
     {drawSlidersPair(setG, color => color.g, "G")} 
     {drawSlidersPair(setB, color => color.b, "B")} 
-    {whenDisabled(_ => overlayOnDisabled)}
+    {whenDisabled(overlayOnDisabled)}
   </div>
 }
 

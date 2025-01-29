@@ -75,9 +75,6 @@
 @mixin color-window-size {
   height: 100%;
   width: 100%;
-  // max-width: 400px;
-  // max-height: 600px;
-
 }
 .game-round {
   @include color-window-size;
@@ -120,11 +117,18 @@
   flex-direction: column;
   @include fullSized;
   @include border-radius;
-  &.overlay-on-disabled {
-    background-color: #bd636342;
+  @mixin overlay-on-game-over {
     width: 100%;
     height: 100%;
     position: absolute;
+  }
+  &.overlay-on-victory {
+    @include overlay-on-game-over;
+    background-color: #4ab74942;
+  };
+  &.overlay-on-defeat {
+    @include overlay-on-game-over;
+    background-color: #bd636342;
   };
 }
 

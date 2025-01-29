@@ -29,52 +29,87 @@ const randomColor = (): Color => {
   }
 }
 
-const DifficultyPicker: FC<{
-  pickDifficulty: (difficulty: number) => void,
-  currentDifficulty: number,
-}> = ({currentDifficulty, pickDifficulty}) => {
+const DifficultyPicker: FC<{state: DifficultyState}> =
+  ({state: {Difficulty}}) => {
   const debounce = useDebounce(10)
   return <>
-      {currentDifficulty}
+      {Difficulty.current}
       <input
         type="range"
         min="0"
         max="100"
-        defaultValue={currentDifficulty}
+        defaultValue={Difficulty.current}
         onChange={
           e => {
               const newValue = e.currentTarget.valueAsNumber       
-              debounce(() => pickDifficulty(newValue))
+              debounce(() => Difficulty.update(() => newValue))
           }
         }
         className={`slider difficulty-picker`}
       />
   </>
 }
+type DifficultyState = { Difficulty: State<number> }
+type GuessedColorState = { GuessedColor: State<Color> }
+type PickedColorState = { PickedColor: State<Color> }
+type GameStateState = { GameState: State<OngoingGameState> }
+type GameState = 
+  DifficultyState
+  & GuessedColorState
+  & PickedColorState
+  & GameStateState
+
+type Current<T extends {[key in string]: State<any>}> = {
+  [key in keyof T]: { current: T[key]["current"] }
+}
+type Update<T extends {[key in string]: State<any>}> = {
+  [key in keyof T]: { update: T[key]["update"] }
+}
+type State<T> = {
+  current: T;
+  update: (updated: () => T) => void,
+}
+const makeState = <T,>(current: T, update: (x: () => T) => void): State<T> =>
+  ({ current, update })
+
+const DEFAULT_COLOR: Color = {r:0,g:0,b:0}
+const DEFAULT_DIFFICULTY = 10
 
 export const Game: FC = () => {
   // it can not be defined initially since the only way to obtain it is to
   // perform side-effect
   const [guessedColor, setGuessedColor] = useState<Color | undefined>()
   useEffect(
-    () => setGuessedColor(randomColor())
-    ,[]
+    () => setGuessedColor(randomColor()),
+    []
   )
-
+  const [difficulty, setDifficulty] = useState(DEFAULT_DIFFICULTY)
   const [gameId,setGameId] = useState(0)
+  const [gameState,setGameState] = useState<OngoingGameState>(
+    () => ({ match: alg => alg.playing })
+  )
+  const [pickedColor,setPickedColor] = useState<Color>(DEFAULT_COLOR)
   const restartGame = (): void => {
     setGuessedColor(randomColor())
+    setPickedColor(DEFAULT_COLOR)
+    setGameState({ match: alg => alg.playing })
     setGameId(id => (id + 1) % 2)
   }
-  return <>
-    { guessedColor &&
-      <GameRound
-        key={gameId}
-        actualColor={guessedColor}
-        restartGame={restartGame}
-      />
+  if (!guessedColor) {
+    return <></>
+  } else {
+    const state: GameState = {
+      Difficulty: makeState(difficulty, setDifficulty),
+      GuessedColor: makeState(guessedColor,setGuessedColor),
+      PickedColor: makeState(pickedColor,setPickedColor),
+      GameState: makeState(gameState, setGameState),
     }
-  </>
+    return <GameRound
+      key={gameId}
+      state={state}
+      restartGame={restartGame}
+    />
+  }
 }
 
 const eachIsClose = (maxDifference: number, color1: Color, color2: Color): [boolean, number] => {
@@ -89,39 +124,43 @@ const eachIsClose = (maxDifference: number, color1: Color, color2: Color): [bool
   ]
 }
 
-const DEFAULT_DIFFICULTY = 10
-
-export const GameRound: FC<{
-  actualColor: Color,
+type GameRoundProps = {
   restartGame: () => void,
-}> = ({restartGame, actualColor}) => {
-  const [gameState,setGameState] =
-    useState<OngoingGameState>(() => ({ match: alg => alg.playing }))
-  const [maxDifferenceToWin, setMaxDifferenceToWin] = useState(DEFAULT_DIFFICULTY)
-  const [pickedColor,setPickedColor] = useState<Color>(
-    {r:0x88,g:0x88,b:0x88}
-  )
+  state: DifficultyState
+    & GameStateState
+    & PickedColorState
+    & Current<GuessedColorState>
+}
+export const GameRound: FC<GameRoundProps> = ({
+  restartGame,
+  state: {
+    Difficulty,
+    GameState,
+    PickedColor,
+    GuessedColor: {current: actualColor},
+  },
+}) => {
   const onPickColor = (): void => {
     const [matches, maxDifference] = eachIsClose(
-      maxDifferenceToWin,
-      pickedColor,
+      Difficulty.current,
+      PickedColor.current,
       actualColor
     )
-    setGameState(_ => ({
+    GameState.update(() => ({
       match: alg => alg.ended(!matches, maxDifference)})
     )
   }
   return <div className="game-round">
-    {maxDifferenceToWin}<ColorPicker
+    {Difficulty.current}<ColorPicker
       disabledWith={
-        gameState.match({
+        GameState.current.match({
           ended: failed => ({actual: actualColor, won: !failed}),
           playing: undefined
         })
       }
-      update={setPickedColor}
+      update={PickedColor.update}
     />
-    { gameState.match({
+    { GameState.current.match({
       playing: <>
         <br/>
         <div className="colored-background">
@@ -138,7 +177,7 @@ export const GameRound: FC<{
       ended: (failed,difference) => <>
         {failed ? "Wrong!" : "Correct!"} Difference is {Math.round(difference)}<br/>
         <div className="colored-background">
-          <ColorsComparison color={actualColor} color2={pickedColor}/>
+          <ColorsComparison color={actualColor} color2={PickedColor.current}/>
         </div>
         <div className="game reset-options">
           <button
@@ -148,10 +187,7 @@ export const GameRound: FC<{
           >
             Restart
           </button>
-          <DifficultyPicker
-            pickDifficulty={setMaxDifferenceToWin}
-            currentDifficulty={maxDifferenceToWin}
-          />
+          <DifficultyPicker state={{Difficulty}}/>
         </div>
       </>,
     })}
@@ -178,7 +214,7 @@ export const ColoredBackground: FC<Props & {child: ReactElement}> = ({ color, ch
 
 type ColorPickerProps = {
   disabledWith?: {actual: Color, won: boolean},
-  update: (color: Color) => void,
+  update: (color: () => Color) => void,
 }
 
 const ColorPicker: FC<ColorPickerProps> = ({disabledWith,update}) => {
@@ -198,7 +234,7 @@ const ColorPicker: FC<ColorPickerProps> = ({disabledWith,update}) => {
   ): ReactElement =>
     <ColorSlider
       disabled={disabled}
-      onChange={c => { setColor(c); update(currentColor)}}
+      onChange={c => { setColor(c); update(() => currentColor)}}
       child={<>{colorName}: {colorOf(currentColor)}</>}
     />
 

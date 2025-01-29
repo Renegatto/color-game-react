@@ -89,7 +89,7 @@ export const GameRound: FC<{
       match: alg => alg.ended(!matches, difference)})
     )
   }
-  return <div>
+  return <div className="game-round">
     <ColorPicker
       disabledWith={
         gameState.match({
@@ -190,10 +190,10 @@ const ColorPicker: FC<ColorPickerProps> = ({disabledWith,update}) => {
     <div className={"color-picker overlay-on-disabled"}/>
 
   return <div className={"color-picker"}>
-    {whenDisabled(_ => overlayOnDisabled)}
     {drawSlidersPair(setR, color => color.r, "R")}
     {drawSlidersPair(setG, color => color.g, "G")} 
     {drawSlidersPair(setB, color => color.b, "B")} 
+    {whenDisabled(_ => overlayOnDisabled)}
   </div>
 }
 

@@ -1,15 +1,10 @@
 "use client"
 import { ElementType, FC, ReactElement, ReactNode, useEffect, useRef, useState } from "react";
-
-type Color = { r: number, g: number, b: number }
+import { useDebounce } from "./Hooks";
+import { Color, colorToCode, Current, eachIsClose, makeState, randomColor, State } from "./Utils";
 
 type Props = {
   color: Color,
-}
-
-const colorToCode = ({r,g,b}: Color): string => {
-  const toHex = (x: number) => x.toString(16).padStart(2,'0')
-  return `#${toHex(r)}${toHex(g)}${toHex(b)}`
 }
 
 type OngoingGameStateAlg<A> = {
@@ -20,35 +15,6 @@ type OngoingGameState = {
   match: <A>(alg: OngoingGameStateAlg<A>) => A
 }
 
-const randomColor = (): Color => {
-  const randomComponent = (): number => Math.floor(Math.random() * 0xFF)
-  return {
-    r: randomComponent(),
-    g: randomComponent(),
-    b: randomComponent(),
-  }
-}
-
-const DifficultyPicker: FC<{state: DifficultyState}> =
-  ({state: {Difficulty}}) => {
-  const debounce = useDebounce(10)
-  return <>
-      {Difficulty.current}
-      <input
-        type="range"
-        min="0"
-        max="100"
-        defaultValue={Difficulty.current}
-        onChange={
-          e => {
-              const newValue = e.currentTarget.valueAsNumber       
-              debounce(() => Difficulty.update(() => newValue))
-          }
-        }
-        className={`slider difficulty-picker`}
-      />
-  </>
-}
 type DifficultyState = { Difficulty: State<number> }
 type GuessedColorState = { GuessedColor: State<Color> }
 type PickedColorState = { PickedColor: State<Color> }
@@ -58,19 +24,6 @@ type GameState =
   & GuessedColorState
   & PickedColorState
   & GameStateState
-
-type Current<T extends {[key in string]: State<any>}> = {
-  [key in keyof T]: { current: T[key]["current"] }
-}
-type Update<T extends {[key in string]: State<any>}> = {
-  [key in keyof T]: { update: T[key]["update"] }
-}
-type State<T> = {
-  current: T;
-  update: (updated: () => T) => void,
-}
-const makeState = <T,>(current: T, update: (x: () => T) => void): State<T> =>
-  ({ current, update })
 
 const DEFAULT_COLOR: Color = {r:0,g:0,b:0}
 const DEFAULT_DIFFICULTY = 10
@@ -110,18 +63,6 @@ export const Game: FC = () => {
       restartGame={restartGame}
     />
   }
-}
-
-const eachIsClose = (maxDifference: number, color1: Color, color2: Color): [boolean, number] => {
-  const differences = [
-    color1.r - color2.r,
-    color1.g - color2.g,
-    color1.b - color2.b,
-  ].map(Math.abs)
-  return [
-    differences.every(diff => diff <= maxDifference),
-    differences.sort((a,b) => b - a)[0]
-  ]
 }
 
 type GameRoundProps = {
@@ -203,6 +144,7 @@ export const ColorsComparison: FC<Props & { color2: Color }> = ({ color, color2 
       <ColoredBackground color={color2} child={<>Color {colorToCode(color2)}</>}/>
     </div>
   </>
+
 export const ColoredBackground: FC<Props & {child: ReactElement}> = ({ color, child }) =>
   <>
     <div className="colored-background background" style={{
@@ -266,23 +208,6 @@ const ColorPicker: FC<ColorPickerProps> = ({disabledWith,update}) => {
   </div>
 }
 
-const useDebounce = (delayMs: number): ((cont: () => void) => void) => {
-  const [{cancel},setCancel] = useState({cancel: () => {}})
-  const updateWithDelay = (cont: () => void): void => {
-    cancel()
-    const timeout = setTimeout(
-      () => {
-        setCancel({ cancel: () => {} })
-        cont()
-      },
-      delayMs
-    )
-    setCancel({ cancel: () => clearTimeout(timeout) })
-  }
-  return updateWithDelay
-}
-
-
 const GhostSlider: FC<{value?: number}> = ({value}) =>
   <>
     <div className="slidecontainer ghost">
@@ -329,5 +254,26 @@ const ColorSlider: FC<ColorSliderProps> = ({disabled,child,onChange}) => {
         className={`slider ${disabled ? "disabled" : "normal"}`}
       />
     </div>
+  </>
+}
+
+const DifficultyPicker: FC<{state: DifficultyState}> =
+  ({state: {Difficulty}}) => {
+  const debounce = useDebounce(10)
+  return <>
+      {Difficulty.current}
+      <input
+        type="range"
+        min="0"
+        max="100"
+        defaultValue={Difficulty.current}
+        onChange={
+          e => {
+              const newValue = e.currentTarget.valueAsNumber       
+              debounce(() => Difficulty.update(() => newValue))
+          }
+        }
+        className={`slider difficulty-picker`}
+      />
   </>
 }

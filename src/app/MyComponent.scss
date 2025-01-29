@@ -29,15 +29,32 @@
     inset 2px 2px 3px rgba(0, 0, 0, 0.6);
 }
 
-.slidecontainer {
-  width: 100%; /* Width of the outside container */
+@mixin border-radius {
+  border-radius: 5px;
 }
+
+.slidecontainer {
+  @include border-radius;
+  display: flex;
+  
+  justify-content: space-between;
+  align-items: start;
+  font-size: medium;
+  width: 100%; /* Width of the outside container */
+  &.normal {
+    flex-direction: row;
+  }
+  &.ghost {
+    flex-direction: row-reverse;
+  }
+}
+
 
 /* The slider itself */
 @mixin slider {
   -webkit-appearance: none;  /* Override default CSS styles */
   appearance: none;
-  width: 100%; /* Full-width */
+  width: 85%;
   height: 15px; /* Specified height */
   background: #d3d3d3; /* Grey background */
   outline: none; /* Remove outline */
@@ -61,6 +78,7 @@
   height: 200px;
 }
 .colored-background {
+  @include border-radius;
   @include color-window-size;
 
   &.comparison {
@@ -72,21 +90,45 @@
   };
 }
 .color-picker {
+  padding-top: 10px;
+  padding-bottom: 10px;
+  row-gap: 5px;
+  display: flex;
+  flex-direction: column;
   @include fullSized;
+  @include border-radius;
   &.overlay-on-disabled {
     background-color: #88888888;
     width: 100%;
     height: 100%;
     position: absolute;
   };
+}
 
+.game {
+  @mixin btn {
+    @include border-radius;
+    border: 4px solid #bca3a3;
+    min-width: 90px;
+  };
+  &.submit-btn {
+    @include btn;
+    background-color: #aa8888;
+  };
+  &.reset-game-btn {
+    @include btn;
+    background-color: #aaaa00;
+  };
 }
 
 .slider {
+  @include border-radius;
   &.normal {
      @include slider;
   };
-
+  &.disabled {
+    @include slider;
+ };
   &.ghost {
     @include slider;
 
@@ -96,12 +138,13 @@
 }
 
 /* Mouse-over effects */
-.slider:hover {
+.slider.normal:hover {
   opacity: 1; /* Fully shown on mouse-over */
 }
 
 /* The slider handle (use -webkit- (Chrome, Opera, Safari, Edge) and -moz- (Firefox) to override default look) */
 .ghostslider::-webkit-slider-thumb {
+  @include border-radius;
   -webkit-appearance: none; /* Override default look */
   appearance: none;
   width: 25px; /* Set a specific slider handle width */
@@ -112,6 +155,7 @@
 
 /* The slider handle (use -webkit- (Chrome, Opera, Safari, Edge) and -moz- (Firefox) to override default look) */
 .slider::-webkit-slider-thumb {
+  @include border-radius;
   -webkit-appearance: none; /* Override default look */
   appearance: none;
   width: 25px; /* Set a specific slider handle width */
@@ -121,6 +165,7 @@
 }
 
 .slider::-moz-range-thumb {
+  @include border-radius;
   width: 25px; /* Set a specific slider handle width */
   height: 20px; /* Slider handle height */
   background: #04AA6D; /* Green background */

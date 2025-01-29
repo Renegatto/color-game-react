@@ -1,7 +1,6 @@
 "use client"
 import { ElementType, FC, ReactElement, ReactNode, useEffect, useRef, useState } from "react";
 
-type SizePx = { x: number, y: number }
 type Color = { r: number, g: number, b: number }
 
 type Props = {
@@ -106,21 +105,26 @@ export const GameRound: FC<{
         <div className="colored-background">
           <ColoredBackground color={actualColor}/>
         </div>
-        <button type="button" style={{
-          border:"2px solid black",
-          backgroundColor: "#aa8888",
-
-        }} onClick={onPickColor}>Pick</button>
+        <button
+          className="game submit-btn"
+          type="button"
+          onClick={onPickColor}
+        >
+          Pick
+        </button>
       </>,
       ended: (failed,difference) => <>
         {failed ? "Wrong!" : "Correct!"} difference is {Math.round(difference)}<br/>
         <div className="colored-background">
           <ColorsComparison color={actualColor} color2={pickedColor}/>
         </div>
-        <button type="button" style={{
-          border:"2px solid black",
-          backgroundColor: "#aa8888",
-        }} onClick={restartGame}>Restart</button>
+        <button
+          className="game reset-game-btn"
+          type="button"
+          onClick={restartGame}
+        >
+          Restart
+        </button>
       </>,
     })}
   </div>
@@ -143,7 +147,12 @@ export const ColoredBackground: FC<Props> = ({ color }: Props) =>
     </div>
   </>
 
-const ColorPicker: FC<{disabledWith?: Color, update: (color: Color) => void}> = ({disabledWith,update}) => {
+type ColorPickerProps = {
+  disabledWith?: Color,
+  update: (color: Color) => void,
+}
+
+const ColorPicker: FC<ColorPickerProps> = ({disabledWith,update}) => {
   const [r,setR] = useState(0)
   const [g,setG] = useState(0)
   const [b,setB] = useState(0)
@@ -153,8 +162,16 @@ const ColorPicker: FC<{disabledWith?: Color, update: (color: Color) => void}> = 
 
   const drawGhostSlider = (pickColor: (color: Color) => number): ReactElement =>
     <GhostSlider value={disabledWith === undefined ? undefined : pickColor(disabledWith)}/>
-  const drawColorSlider = (setColor: (color: number) => void): ReactElement =>
-    <ColorSlider disabled={disabled} onChange={c => { setColor(c); update(currentColor) }}/>
+  const drawColorSlider = (
+    setColor: (color: number) => void,
+    colorOf: (color: Color) => number,
+    colorName: string,
+  ): ReactElement =>
+    <ColorSlider
+      disabled={disabled}
+      onChange={c => { setColor(c); update(currentColor)}}
+      child={<>{colorName}: {colorOf(currentColor)}</>}
+    />
 
   const drawSlidersPair = (
     updateColor: (color: number) => void,
@@ -162,8 +179,7 @@ const ColorPicker: FC<{disabledWith?: Color, update: (color: Color) => void}> = 
     colorName: string,
   ): ReactElement =>
     <>
-      {`${colorName}: `} 
-      {drawColorSlider(updateColor)}
+      {drawColorSlider(updateColor,colorOf,colorName)}
       {drawGhostSlider(colorOf)}
     </>
 
@@ -200,28 +216,35 @@ const useDebounce = (delayMs: number): ((cont: () => void) => void) => {
 
 const GhostSlider: FC<{value?: number}> = ({value}) =>
   <>
-    <div className="slidecontainer">
+    <div className="slidecontainer ghost">
       <input
         type="range"
         disabled={true}
         style={{visibility: value === undefined ? "hidden" : undefined}}
         min="0"
-        max="255"
+        max="255"  
         value={value}
         className="slider ghost"
       />
     </div>
   </>
 
-const ColorSlider: FC<{disabled: boolean, onChange: (val: number) => void}> = ({disabled,onChange}) => {
+type ColorSliderProps = {
+  disabled: boolean,
+  onChange: (val: number) => void,
+  child: ReactElement,
+}
+
+const ColorSlider: FC<ColorSliderProps> = ({disabled,child,onChange}) => {
   const [value,setValue] = useState(0)
   const debounce = useDebounce(10)
   const change = (val: number): void => {
     setValue(val)
     onChange(val)
   }
-  return <>{value}
-    <div className="slidecontainer">
+  return <>
+    <div className="slidecontainer normal">
+      {child}
       <input
         type="range"
         disabled={disabled}
@@ -234,7 +257,7 @@ const ColorSlider: FC<{disabled: boolean, onChange: (val: number) => void}> = ({
               debounce(() => change(newValue))
           }
         }
-        className="slider normal"
+        className={`slider ${disabled ? "disabled" : "normal"}`}
       />
     </div>
   </>

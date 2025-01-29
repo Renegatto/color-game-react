@@ -103,7 +103,7 @@ export const GameRound: FC<{
       playing: <>
         <br/>
         <div className="colored-background">
-          <ColoredBackground color={actualColor}/>
+          <ColoredBackground color={actualColor} child={<></>}/>
         </div>
         <button
           className="game submit-btn"
@@ -133,17 +133,18 @@ export const GameRound: FC<{
 export const ColorsComparison: FC<Props & { color2: Color }> = ({ color, color2 }) =>
   <>
     <div className="colored-background comparison">
-      <ColoredBackground color={color}/>
+      <ColoredBackground color={color} child={<>Color {colorToCode(color)}</>}/>
     </div>
     <div className="colored-background comparison">
-      <ColoredBackground color={color2}/>
+      <ColoredBackground color={color2} child={<>Color {colorToCode(color)}</>}/>
     </div>
   </>
-export const ColoredBackground: FC<Props> = ({ color }: Props) =>
+export const ColoredBackground: FC<Props & {child: ReactElement}> = ({ color, child }) =>
   <>
     <div className="colored-background background" style={{
       backgroundColor: colorToCode(color),
-    }}> Color {colorToCode(color)}
+    }}>
+      {child}
     </div>
   </>
 

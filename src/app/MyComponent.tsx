@@ -1,7 +1,7 @@
 "use client"
 import { ElementType, FC, ReactElement, ReactNode, useEffect, useRef, useState } from "react";
 import { useDebounce } from "./Hooks";
-import { Color, colorToCode, Current, eachIsClose, makeState, randomColor, State } from "./Utils";
+import { Color, Option, colorToCode, Current, eachIsClose, makeState, randomColor, State, None, Some } from "./Utils";
 
 type Props = {
   color: Color,
@@ -93,11 +93,12 @@ export const GameRound: FC<GameRoundProps> = ({
     )
   }
   return <div className="game-round">
-    {Difficulty.current}<ColorPicker
+    {Difficulty.current}
+    <ColorPicker
       disabledWith={
         GameState.current.match({
-          ended: failed => ({ actual: actualColor, won: !failed }),
-          playing: undefined
+          ended: failed => Some({ actual: actualColor, won: !failed }),
+          playing: None
         })
       }
       update={PickedColor.update}
@@ -156,7 +157,7 @@ export const ColoredBackground: FC<Props & { child: ReactElement }> = ({ color, 
   </>
 
 type ColorPickerProps = {
-  disabledWith?: { actual: Color, won: boolean },
+  disabledWith: Option<{ actual: Color, won: boolean }>,
   update: (color: () => Color) => void,
 }
 
@@ -166,10 +167,15 @@ const ColorPicker: FC<ColorPickerProps> = ({ disabledWith, update }) => {
   const [b, setB] = useState(0)
   const currentColor: Color = { r, g, b }
 
-  const disabled = disabledWith != undefined
-
+  const disabled = disabledWith.match({
+    some: () => true,
+    none: false
+  })
   const drawGhostSlider = (pickColor: (color: Color) => number): ReactElement =>
-    <GhostSlider value={disabledWith === undefined ? undefined : pickColor(disabledWith.actual)} />
+    <GhostSlider value={disabledWith.match({
+      none: None,
+      some: ({actual}) => Some(pickColor(actual)),
+    })}/>
   const drawColorSlider = (
     setColor: (color: number) => void,
     colorOf: (color: Color) => number,
@@ -192,10 +198,10 @@ const ColorPicker: FC<ColorPickerProps> = ({ disabledWith, update }) => {
     </>
 
   const whenDisabled = (child: (won: boolean) => ReactElement): ReactElement =>
-    disabledWith === undefined
-      ? <></>
-      : child(disabledWith.won)
-
+    disabledWith.match({
+      some: ({won}) => child(won),
+      none: <></>,
+    })
   const overlayOnDisabled = (won: boolean) =>
     <div className={`color-picker ${won ? "overlay-on-victory" : "overlay-on-defeat"
       }`} />
@@ -208,16 +214,19 @@ const ColorPicker: FC<ColorPickerProps> = ({ disabledWith, update }) => {
   </div>
 }
 
-const GhostSlider: FC<{ value?: number }> = ({ value }) =>
+const GhostSlider: FC<{ value: Option<number> }> = ({ value }) =>
   <>
     <div className="slidecontainer ghost">
       <input
         type="range"
         disabled={true}
-        style={{ visibility: value === undefined ? "hidden" : undefined }}
+        style={{ visibility: value.match({
+          none: "hidden",
+          some: _ => undefined
+        })}}
         min="0"
         max="255"
-        value={value}
+        value={value.match({ some: x => x, none: undefined })}
         className="slider ghost"
       />
     </div>

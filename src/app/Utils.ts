@@ -39,3 +39,14 @@ export const randomColor = (): Color => {
     b: randomComponent(),
   }
 }
+
+type OptionAlg<B,A> = {
+  none: A,
+  some(x: B): A,
+}
+export type Option<A> = {
+  match: <C>(alg: OptionAlg<A,C>) => C
+}
+export const Some = <A>(x: A): Option<A> =>
+  ({ match: alg => alg.some(x) })
+export const None: Option<any> = { match: alg => alg.none }

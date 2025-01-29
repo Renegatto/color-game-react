@@ -7,6 +7,12 @@ type Props = {
   color: Color,
 }
 
+type OutcomeAlg<A> = {
+  victory: A,
+  defeat: A,
+}
+type Outcome = { match: <C>(alg: OutcomeAlg<C>) => C }
+
 type OngoingGameStateAlg<A> = {
   playing: A,
   ended(failed: boolean, difference: number): A,
@@ -92,8 +98,15 @@ export const GameRound: FC<GameRoundProps> = ({
     })
     )
   }
+  const roundResult = GameState.current.match({
+    playing: None,
+    ended: (failed,difference) =>
+      Some({
+        outcome: { match: alg => failed ? alg.defeat : alg.victory} as Outcome,
+        difference: Math.round(difference),
+      })
+  })
   return <div className="game-round">
-    {Difficulty.current}
     <ColorPicker
       disabledWith={
         GameState.current.match({
@@ -103,9 +116,9 @@ export const GameRound: FC<GameRoundProps> = ({
       }
       update={PickedColor.update}
     />
+    <InfoBar state={{Difficulty}} roundResult={roundResult}/>
     {GameState.current.match({
       playing: <>
-        <br />
         <div className="colored-background">
           <ColoredBackground color={actualColor} child={<></>} />
         </div>
@@ -117,8 +130,7 @@ export const GameRound: FC<GameRoundProps> = ({
           Pick
         </button>
       </>,
-      ended: (failed, difference) => <>
-        {failed ? "Wrong!" : "Correct!"} Difference is {Math.round(difference)}<br />
+      ended: () => <>
         <div className="colored-background">
           <ColorsComparison color={actualColor} color2={PickedColor.current} />
         </div>
@@ -134,6 +146,26 @@ export const GameRound: FC<GameRoundProps> = ({
         </div>
       </>,
     })}
+  </div>
+}
+
+export const InfoBar: FC<{
+  roundResult: Option<{outcome: Outcome, difference: number}>,
+  state: Current<DifficultyState>
+}> =
+  ({roundResult,state: {Difficulty}}) => {
+  return <div className="info-bar">
+    {roundResult.match({
+      none: <div style={{visibility: "hidden"}}></div>,
+      some: ({outcome,difference}) =>
+        <div>
+          {outcome.match({
+            victory: "Great job!",
+            defeat: "Wrong!",
+          })} Difference is {difference}
+        </div>,
+    })}
+    <div>Difficulty: {Difficulty.current}</div>
   </div>
 }
 

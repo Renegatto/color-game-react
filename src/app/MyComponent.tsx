@@ -19,13 +19,13 @@ type DifficultyState = { Difficulty: State<number> }
 type GuessedColorState = { GuessedColor: State<Color> }
 type PickedColorState = { PickedColor: State<Color> }
 type GameStateState = { GameState: State<OngoingGameState> }
-type GameState = 
+type GameState =
   DifficultyState
   & GuessedColorState
   & PickedColorState
   & GameStateState
 
-const DEFAULT_COLOR: Color = {r:0,g:0,b:0}
+const DEFAULT_COLOR: Color = { r: 0, g: 0, b: 0 }
 const DEFAULT_DIFFICULTY = 10
 
 export const Game: FC = () => {
@@ -37,11 +37,11 @@ export const Game: FC = () => {
     []
   )
   const [difficulty, setDifficulty] = useState(DEFAULT_DIFFICULTY)
-  const [gameId,setGameId] = useState(0)
-  const [gameState,setGameState] = useState<OngoingGameState>(
+  const [gameId, setGameId] = useState(0)
+  const [gameState, setGameState] = useState<OngoingGameState>(
     () => ({ match: alg => alg.playing })
   )
-  const [pickedColor,setPickedColor] = useState<Color>(DEFAULT_COLOR)
+  const [pickedColor, setPickedColor] = useState<Color>(DEFAULT_COLOR)
   const restartGame = (): void => {
     setGuessedColor(randomColor())
     setPickedColor(DEFAULT_COLOR)
@@ -53,8 +53,8 @@ export const Game: FC = () => {
   } else {
     const state: GameState = {
       Difficulty: makeState(difficulty, setDifficulty),
-      GuessedColor: makeState(guessedColor,setGuessedColor),
-      PickedColor: makeState(pickedColor,setPickedColor),
+      GuessedColor: makeState(guessedColor, setGuessedColor),
+      PickedColor: makeState(pickedColor, setPickedColor),
       GameState: makeState(gameState, setGameState),
     }
     return <GameRound
@@ -68,9 +68,9 @@ export const Game: FC = () => {
 type GameRoundProps = {
   restartGame: () => void,
   state: DifficultyState
-    & GameStateState
-    & PickedColorState
-    & Current<GuessedColorState>
+  & GameStateState
+  & PickedColorState
+  & Current<GuessedColorState>
 }
 export const GameRound: FC<GameRoundProps> = ({
   restartGame,
@@ -78,7 +78,7 @@ export const GameRound: FC<GameRoundProps> = ({
     Difficulty,
     GameState,
     PickedColor,
-    GuessedColor: {current: actualColor},
+    GuessedColor: { current: actualColor },
   },
 }) => {
   const onPickColor = (): void => {
@@ -88,24 +88,25 @@ export const GameRound: FC<GameRoundProps> = ({
       actualColor
     )
     GameState.update(() => ({
-      match: alg => alg.ended(!matches, maxDifference)})
+      match: alg => alg.ended(!matches, maxDifference)
+    })
     )
   }
   return <div className="game-round">
     {Difficulty.current}<ColorPicker
       disabledWith={
         GameState.current.match({
-          ended: failed => ({actual: actualColor, won: !failed}),
+          ended: failed => ({ actual: actualColor, won: !failed }),
           playing: undefined
         })
       }
       update={PickedColor.update}
     />
-    { GameState.current.match({
+    {GameState.current.match({
       playing: <>
-        <br/>
+        <br />
         <div className="colored-background">
-          <ColoredBackground color={actualColor} child={<></>}/>
+          <ColoredBackground color={actualColor} child={<></>} />
         </div>
         <button
           className="game submit-btn"
@@ -115,10 +116,10 @@ export const GameRound: FC<GameRoundProps> = ({
           Pick
         </button>
       </>,
-      ended: (failed,difference) => <>
-        {failed ? "Wrong!" : "Correct!"} Difference is {Math.round(difference)}<br/>
+      ended: (failed, difference) => <>
+        {failed ? "Wrong!" : "Correct!"} Difference is {Math.round(difference)}<br />
         <div className="colored-background">
-          <ColorsComparison color={actualColor} color2={PickedColor.current}/>
+          <ColorsComparison color={actualColor} color2={PickedColor.current} />
         </div>
         <div className="game reset-options">
           <button
@@ -128,7 +129,7 @@ export const GameRound: FC<GameRoundProps> = ({
           >
             Restart
           </button>
-          <DifficultyPicker state={{Difficulty}}/>
+          <DifficultyPicker state={{ Difficulty }} />
         </div>
       </>,
     })}
@@ -138,14 +139,14 @@ export const GameRound: FC<GameRoundProps> = ({
 export const ColorsComparison: FC<Props & { color2: Color }> = ({ color, color2 }) =>
   <>
     <div className="colored-background comparison">
-      <ColoredBackground color={color} child={<>Color {colorToCode(color)}</>}/>
+      <ColoredBackground color={color} child={<>Color {colorToCode(color)}</>} />
     </div>
     <div className="colored-background comparison">
-      <ColoredBackground color={color2} child={<>Color {colorToCode(color2)}</>}/>
+      <ColoredBackground color={color2} child={<>Color {colorToCode(color2)}</>} />
     </div>
   </>
 
-export const ColoredBackground: FC<Props & {child: ReactElement}> = ({ color, child }) =>
+export const ColoredBackground: FC<Props & { child: ReactElement }> = ({ color, child }) =>
   <>
     <div className="colored-background background" style={{
       backgroundColor: colorToCode(color),
@@ -155,20 +156,20 @@ export const ColoredBackground: FC<Props & {child: ReactElement}> = ({ color, ch
   </>
 
 type ColorPickerProps = {
-  disabledWith?: {actual: Color, won: boolean},
+  disabledWith?: { actual: Color, won: boolean },
   update: (color: () => Color) => void,
 }
 
-const ColorPicker: FC<ColorPickerProps> = ({disabledWith,update}) => {
-  const [r,setR] = useState(0)
-  const [g,setG] = useState(0)
-  const [b,setB] = useState(0)
-  const currentColor: Color = {r,g,b}
+const ColorPicker: FC<ColorPickerProps> = ({ disabledWith, update }) => {
+  const [r, setR] = useState(0)
+  const [g, setG] = useState(0)
+  const [b, setB] = useState(0)
+  const currentColor: Color = { r, g, b }
 
   const disabled = disabledWith != undefined
 
   const drawGhostSlider = (pickColor: (color: Color) => number): ReactElement =>
-    <GhostSlider value={disabledWith === undefined ? undefined : pickColor(disabledWith.actual)}/>
+    <GhostSlider value={disabledWith === undefined ? undefined : pickColor(disabledWith.actual)} />
   const drawColorSlider = (
     setColor: (color: number) => void,
     colorOf: (color: Color) => number,
@@ -176,7 +177,7 @@ const ColorPicker: FC<ColorPickerProps> = ({disabledWith,update}) => {
   ): ReactElement =>
     <ColorSlider
       disabled={disabled}
-      onChange={c => { setColor(c); update(() => currentColor)}}
+      onChange={c => { setColor(c); update(() => currentColor) }}
       child={<>{colorName}: {colorOf(currentColor)}</>}
     />
 
@@ -186,7 +187,7 @@ const ColorPicker: FC<ColorPickerProps> = ({disabledWith,update}) => {
     colorName: string,
   ): ReactElement =>
     <>
-      {drawColorSlider(updateColor,colorOf,colorName)}
+      {drawColorSlider(updateColor, colorOf, colorName)}
       {drawGhostSlider(colorOf)}
     </>
 
@@ -196,27 +197,26 @@ const ColorPicker: FC<ColorPickerProps> = ({disabledWith,update}) => {
       : child(disabledWith.won)
 
   const overlayOnDisabled = (won: boolean) =>
-    <div className={`color-picker ${
-      won ? "overlay-on-victory" : "overlay-on-defeat"
-    }`}/>
+    <div className={`color-picker ${won ? "overlay-on-victory" : "overlay-on-defeat"
+      }`} />
 
   return <div className={"color-picker"}>
     {drawSlidersPair(setR, color => color.r, "R")}
-    {drawSlidersPair(setG, color => color.g, "G")} 
-    {drawSlidersPair(setB, color => color.b, "B")} 
+    {drawSlidersPair(setG, color => color.g, "G")}
+    {drawSlidersPair(setB, color => color.b, "B")}
     {whenDisabled(overlayOnDisabled)}
   </div>
 }
 
-const GhostSlider: FC<{value?: number}> = ({value}) =>
+const GhostSlider: FC<{ value?: number }> = ({ value }) =>
   <>
     <div className="slidecontainer ghost">
       <input
         type="range"
         disabled={true}
-        style={{visibility: value === undefined ? "hidden" : undefined}}
+        style={{ visibility: value === undefined ? "hidden" : undefined }}
         min="0"
-        max="255"  
+        max="255"
         value={value}
         className="slider ghost"
       />
@@ -229,8 +229,8 @@ type ColorSliderProps = {
   child: ReactElement,
 }
 
-const ColorSlider: FC<ColorSliderProps> = ({disabled,child,onChange}) => {
-  const [value,setValue] = useState(0)
+const ColorSlider: FC<ColorSliderProps> = ({ disabled, child, onChange }) => {
+  const [value, setValue] = useState(0)
   const debounce = useDebounce(10)
   const change = (val: number): void => {
     setValue(val)
@@ -247,8 +247,8 @@ const ColorSlider: FC<ColorSliderProps> = ({disabled,child,onChange}) => {
         defaultValue={0}
         onChange={
           e => {
-              const newValue = e.currentTarget.valueAsNumber       
-              debounce(() => change(newValue))
+            const newValue = e.currentTarget.valueAsNumber
+            debounce(() => change(newValue))
           }
         }
         className={`slider ${disabled ? "disabled" : "normal"}`}
@@ -257,10 +257,10 @@ const ColorSlider: FC<ColorSliderProps> = ({disabled,child,onChange}) => {
   </>
 }
 
-const DifficultyPicker: FC<{state: DifficultyState}> =
-  ({state: {Difficulty}}) => {
-  const debounce = useDebounce(10)
-  return <>
+const DifficultyPicker: FC<{ state: DifficultyState }> =
+  ({ state: { Difficulty } }) => {
+    const debounce = useDebounce(10)
+    return <>
       {Difficulty.current}
       <input
         type="range"
@@ -269,11 +269,11 @@ const DifficultyPicker: FC<{state: DifficultyState}> =
         defaultValue={Difficulty.current}
         onChange={
           e => {
-              const newValue = e.currentTarget.valueAsNumber       
-              debounce(() => Difficulty.update(() => newValue))
+            const newValue = e.currentTarget.valueAsNumber
+            debounce(() => Difficulty.update(() => newValue))
           }
         }
         className={`slider difficulty-picker`}
       />
-  </>
-}
+    </>
+  }

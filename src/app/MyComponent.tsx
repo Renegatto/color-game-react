@@ -67,7 +67,7 @@ const eachIsClose = (maxDifference: number, color1: Color, color2: Color): [bool
   ].map(Math.abs)
   return [
     differences.every(diff => diff <= maxDifference),
-    differences.sort()[0]
+    differences.sort()[differences.length]
   ]
 }
 

@@ -29,11 +29,30 @@ const randomColor = (): Color => {
   }
 }
 
-export type GameProps = {
-  maxDifferenceToWin: number,
+const DifficultyPicker: FC<{
+  pickDifficulty: (difficulty: number) => void,
+  currentDifficulty: number,
+}> = ({currentDifficulty, pickDifficulty}) => {
+  const debounce = useDebounce(10)
+  return <>
+      {currentDifficulty}
+      <input
+        type="range"
+        min="0"
+        max="100"
+        defaultValue={currentDifficulty}
+        onChange={
+          e => {
+              const newValue = e.currentTarget.valueAsNumber       
+              debounce(() => pickDifficulty(newValue))
+          }
+        }
+        className={`slider difficulty-picker`}
+      />
+  </>
 }
 
-export const Game: FC<GameProps> = ({maxDifferenceToWin}) => {
+export const Game: FC = () => {
   // it can not be defined initially since the only way to obtain it is to
   // perform side-effect
   const [guessedColor, setGuessedColor] = useState<Color | undefined>()
@@ -53,7 +72,6 @@ export const Game: FC<GameProps> = ({maxDifferenceToWin}) => {
         key={gameId}
         actualColor={guessedColor}
         restartGame={restartGame}
-        maxDifferenceToWin={maxDifferenceToWin}
       />
     }
   </>
@@ -71,13 +89,15 @@ const eachIsClose = (maxDifference: number, color1: Color, color2: Color): [bool
   ]
 }
 
+const DEFAULT_DIFFICULTY = 10
+
 export const GameRound: FC<{
   actualColor: Color,
   restartGame: () => void,
-  maxDifferenceToWin: number,
-}> = ({restartGame, actualColor, maxDifferenceToWin}) => {
+}> = ({restartGame, actualColor}) => {
   const [gameState,setGameState] =
     useState<OngoingGameState>(() => ({ match: alg => alg.playing }))
+  const [maxDifferenceToWin, setMaxDifferenceToWin] = useState(DEFAULT_DIFFICULTY)
   const [pickedColor,setPickedColor] = useState<Color>(
     {r:0x88,g:0x88,b:0x88}
   )
@@ -92,7 +112,7 @@ export const GameRound: FC<{
     )
   }
   return <div className="game-round">
-    <ColorPicker
+    {maxDifferenceToWin}<ColorPicker
       disabledWith={
         gameState.match({
           ended: failed => ({actual: actualColor, won: !failed}),
@@ -120,13 +140,19 @@ export const GameRound: FC<{
         <div className="colored-background">
           <ColorsComparison color={actualColor} color2={pickedColor}/>
         </div>
-        <button
-          className="game reset-game-btn"
-          type="button"
-          onClick={restartGame}
-        >
-          Restart
-        </button>
+        <div className="game reset-options">
+          <button
+            className="game reset-options reset-game-btn"
+            type="button"
+            onClick={restartGame}
+          >
+            Restart
+          </button>
+          <DifficultyPicker
+            pickDifficulty={setMaxDifferenceToWin}
+            currentDifficulty={maxDifferenceToWin}
+          />
+        </div>
       </>,
     })}
   </div>

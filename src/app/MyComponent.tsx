@@ -138,7 +138,7 @@ export const ColorsComparison: FC<Props & { color2: Color }> = ({ color, color2 
       <ColoredBackground color={color} child={<>Color {colorToCode(color)}</>}/>
     </div>
     <div className="colored-background comparison">
-      <ColoredBackground color={color2} child={<>Color {colorToCode(color)}</>}/>
+      <ColoredBackground color={color2} child={<>Color {colorToCode(color2)}</>}/>
     </div>
   </>
 export const ColoredBackground: FC<Props & {child: ReactElement}> = ({ color, child }) =>

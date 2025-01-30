@@ -87,9 +87,9 @@ export const Game: FC = () => {
 type GameRoundProps = {
   restartGame: () => void,
   state: DifficultyState
-    & GameStateState
-    & PickedColorState
-    & Current<GuessedColorState>
+  & GameStateState
+  & PickedColorState
+  & Current<GuessedColorState>
 }
 export const GameRound: FC<GameRoundProps> = ({
   restartGame,
@@ -123,13 +123,13 @@ export const GameRound: FC<GameRoundProps> = ({
           playing: None()
         })
       }
-      state={{PickedColor}}
+      state={{ PickedColor }}
     />
-    <InfoBar state={{Difficulty,GameState}}/>
+    <InfoBar state={{ Difficulty, GameState }} />
     {GameState.current.match({
       playing: <>
         <div className="colored-background">
-          <ColoredBackground color={actualColor} child={<></>}/>
+          <ColoredBackground color={actualColor} child={<></>} />
         </div>
         <button
           className="game submit-btn"
@@ -141,7 +141,7 @@ export const GameRound: FC<GameRoundProps> = ({
       </>,
       ended: () => <>
         <div className="colored-background">
-          <ColorsComparison actual={actualColor} picked={PickedColor.current}/>
+          <ColorsComparison actual={actualColor} picked={PickedColor.current} />
         </div>
         <div className="game reset-options">
           <button
@@ -161,123 +161,123 @@ export const GameRound: FC<GameRoundProps> = ({
 export const InfoBar: FC<{
   state: Current<DifficultyState> & Current<GameStateState>
 }> =
-  ({state: {Difficulty,GameState}}) => {
-  return <div className="info-bar">
-    {GameState.current.match({
-      playing: <div style={{visibility: "hidden"}}></div>,
-      ended: (outcome,difference,_) =>
-        <div>
-          {outcome.match({
-            victory: "Great job!",
-            defeat: "Wrong!",
-          })} Difference is {Math.round(difference)}
-        </div>,
-    })}
-    <div>Difficulty: {
-      displayDifficulty(GameState.current.match({
-        playing: Difficulty.current,
-        // we only display difficulty AT THE MOMENT game was over
-        ended: (_out,_diff,difficulty) => difficulty,
-      }))
-    }</div>
-  </div>
-}
+  ({ state: { Difficulty, GameState } }) => {
+    return <div className="info-bar">
+      {GameState.current.match({
+        playing: <div style={{ visibility: "hidden" }}></div>,
+        ended: (outcome, difference, _) =>
+          <div>
+            {outcome.match({
+              victory: "Great job!",
+              defeat: "Wrong!",
+            })} Difference is {Math.round(difference)}
+          </div>,
+      })}
+      <div>Difficulty: {
+        displayDifficulty(GameState.current.match({
+          playing: Difficulty.current,
+          // we only display difficulty AT THE MOMENT game was over
+          ended: (_out, _diff, difficulty) => difficulty,
+        }))
+      }</div>
+    </div>
+  }
 
 export const ColorsComparison: FC<{ actual: Color, picked: Color }> =
   ({ actual, picked }) =>
-  <>
-    <div className="colored-background comparison">
-      <ColoredBackground
-        color={actual}
-        child={<>Actual color {colorToCode(actual)}</>}
-      />
-    </div>
-    <div className="colored-background comparison">
-      <ColoredBackground
-        color={picked}
-        child={<>Your color {colorToCode(picked)}</>}
-      />
-    </div>
-  </>
+    <>
+      <div className="colored-background comparison">
+        <ColoredBackground
+          color={actual}
+          child={<>Actual color {colorToCode(actual)}</>}
+        />
+      </div>
+      <div className="colored-background comparison">
+        <ColoredBackground
+          color={picked}
+          child={<>Your color {colorToCode(picked)}</>}
+        />
+      </div>
+    </>
 
 export const ColoredBackground: FC<{ color: Color, child: ReactElement }> =
   ({ color, child }) =>
-  <>
-    <div className="colored-background background" style={{
-      backgroundColor: colorToCode(color),
-    }}>
-      {child}
-    </div>
-  </>
+    <>
+      <div className="colored-background background" style={{
+        backgroundColor: colorToCode(color),
+      }}>
+        {child}
+      </div>
+    </>
 
 type ColorPickerProps = {
   disabledWith: Option<{ actual: Color, outcome: Outcome }>,
   state: PickedColorState,
 }
 
-const withR: Lens<Color,number> =
-  lens(({r}) => r,({g,b},r) => ({r,g,b}))
-const withG: Lens<Color,number> =
-  lens(({g}) => g, ({r,b},g) => ({r,g,b}))
-const withB: Lens<Color,number> =
-  lens(({b}) => b, ({g,r},b) => ({r,g,b}))
+const withR: Lens<Color, number> =
+  lens(({ r }) => r, ({ g, b }, r) => ({ r, g, b }))
+const withG: Lens<Color, number> =
+  lens(({ g }) => g, ({ r, b }, g) => ({ r, g, b }))
+const withB: Lens<Color, number> =
+  lens(({ b }) => b, ({ g, r }, b) => ({ r, g, b }))
 
 const ColorPicker: FC<ColorPickerProps> =
-  ({ disabledWith, state: {PickedColor} }) => {
+  ({ disabledWith, state: { PickedColor } }) => {
 
-  const currentColor: Color = PickedColor.current
+    const currentColor: Color = PickedColor.current
 
-  const disabled = disabledWith.match({
-    some: () => true,
-    none: false
-  })
-  const drawGhostSlider = (component: Lens<Color,number>): ReactElement =>
-    <GhostSlider value={disabledWith.match({
-      none: None(),
-      some: ({actual}) => Some(component.get(actual)),
-    })}/>
-  const drawColorSlider = (
-    component: Lens<Color,number>,
-    colorName: string,
-  ): ReactElement =>
-    <ColorSlider
-      disabled={disabled}
-      onChange={c =>
-        PickedColor.update(() =>
-          component.modify(currentColor,c)
-        )
-      }
-      child={<>{colorName}: {component.get(currentColor)}</>}
-    />
-
-  const drawSlidersPair = (
-    component: Lens<Color,number>,
-    colorName: string,
-  ): ReactElement =>
-    <>
-      {drawColorSlider(component, colorName)}
-      {drawGhostSlider(component)}
-    </>
-
-  const whenDisabled = (child: (subclass: string) => ReactElement): ReactElement =>
-    disabledWith.match({
-      some: ({outcome}) => 
-        child(outcome.match({
-          victory: "overlay-on-victory",
-          defeat: "overlay-on-defeat",
-        })),
-      none: <></>,
+    const disabled = disabledWith.match({
+      some: () => true,
+      none: false
     })
-  const overlayOnDisabled = (subclass: string) =>
-    <div className={`color-picker ${subclass}`} />
+    const drawGhostSlider = (component: Lens<Color, number>): ReactElement =>
+      <GhostSlider value={disabledWith.match({
+        none: None(),
+        some: ({ actual }) => Some(component.get(actual)),
+      })} />
+    const drawColorSlider = (
+      component: Lens<Color, number>,
+      colorName: string,
+    ): ReactElement =>
+      <ColorSlider
+        disabled={disabled}
+        onChange={c =>
+          PickedColor.update(() =>
+            component.modify(currentColor, c)
+          )
+        }
+        child={<>{colorName}: {component.get(currentColor)}</>}
+      />
 
-  return <div className={"color-picker"}>
-    {drawSlidersPair(withR, "R")}
-    {drawSlidersPair(withG, "G")}
-    {drawSlidersPair(withB, "B")}
-    {whenDisabled(overlayOnDisabled)}
-  </div>
-}
+    const drawSlidersPair = (
+      component: Lens<Color, number>,
+      colorName: string,
+    ): ReactElement =>
+      <>
+        {drawColorSlider(component, colorName)}
+        {drawGhostSlider(component)}
+      </>
+
+    const whenDisabled = (child: (subclass: string) => ReactElement): ReactElement =>
+      disabledWith.match({
+        some: ({ outcome }) =>
+          child(outcome.match({
+            victory: "overlay-on-victory",
+            defeat: "overlay-on-defeat",
+          })),
+        none: <></>,
+      })
+    const overlayOnDisabled = (subclass: string) =>
+      <div className={`color-picker ${subclass}`} />
+
+    return <div className={"color-picker"}>
+      {drawSlidersPair(withR, "R")}
+      {drawSlidersPair(withG, "G")}
+      {drawSlidersPair(withB, "B")}
+      {whenDisabled(overlayOnDisabled)}
+    </div>
+  }
 
 const GhostSlider: FC<{ value: Option<number> }> = ({ value }) =>
   <>
@@ -285,10 +285,12 @@ const GhostSlider: FC<{ value: Option<number> }> = ({ value }) =>
       <input
         type="range"
         disabled={true}
-        style={{ visibility: value.match({
-          none: "hidden",
-          some: _ => undefined
-        })}}
+        style={{
+          visibility: value.match({
+            none: "hidden",
+            some: _ => undefined
+          })
+        }}
         min="0"
         max="255"
         value={value.match({ some: x => x, none: undefined })}
@@ -333,29 +335,29 @@ const DifficultyPicker: FC<{ state: DifficultyState }> =
   ({ state: { Difficulty } }) => {
     const debounce = useDebounce(10)
     return <>
-      <div className="difficulty-picker"> 
-          <div>
-            Restart with difficulty: {
-              displayDifficulty(Difficulty.current)
-            }
-          </div> 
-          <div>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              defaultValue={Difficulty.current}
-              onChange={
-                e => {
-                  const newValue = e.currentTarget.valueAsNumber
-                  debounce(() =>
-                    Difficulty.update(() => newValue)
-                  )
-                }
+      <div className="difficulty-picker">
+        <div>
+          Restart with difficulty: {
+            displayDifficulty(Difficulty.current)
+          }
+        </div>
+        <div>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            defaultValue={Difficulty.current}
+            onChange={
+              e => {
+                const newValue = e.currentTarget.valueAsNumber
+                debounce(() =>
+                  Difficulty.update(() => newValue)
+                )
               }
-              className={`slider difficulty-picker`}
-            />
-          </div>
+            }
+            className={`slider difficulty-picker`}
+          />
+        </div>
       </div>
     </>
   }

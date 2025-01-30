@@ -115,6 +115,10 @@ export const GameRound: FC<GameRoundProps> = ({
     })
     )
   }
+  const stillPlaying: boolean = GameState.current.match({
+    playing: true,
+    ended: () => false,
+  })
   return <div className="game-round">
     <ColorPicker
       disabledWith={
@@ -126,37 +130,43 @@ export const GameRound: FC<GameRoundProps> = ({
       state={{ PickedColor }}
     />
     <InfoBar state={{ Difficulty, GameState }} />
-    {GameState.current.match({
-      playing: <>
-        <div className="colored-background">
-          <ColoredBackground color={actualColor} child={<></>} />
-        </div>
-        <button
-          className="game submit-btn"
-          type="button"
-          onClick={onPickColor}
-        >
-          Pick
-        </button>
-      </>,
-      ended: () => <>
-        <div className="colored-background">
-          <ColorsComparison actual={actualColor} picked={PickedColor.current} />
-        </div>
-        <div className="game reset-options">
-          <button
-            className="game reset-options reset-game-btn"
-            type="button"
-            onClick={restartGame}
-          >
-            Restart
-          </button>
-          <DifficultyPicker state={{ Difficulty }} />
-        </div>
-      </>,
-    })}
+    <div className="colored-background">
+      { stillPlaying
+        ? <ColoredBackground color={actualColor} child={<></>} />
+        : <div className="colored-background">
+            <ColorsComparison actual={actualColor} picked={PickedColor.current} />
+          </div>
+      }
+    </div>
+    <div className="game bottom-block">
+      { stillPlaying
+        ? <PickColorBtn onPickColor={onPickColor}/>
+        : <div className="game bottom-block reset-options">
+            <RestartBtn restartGame={restartGame}/>
+            <DifficultyPicker state={{ Difficulty }} />
+          </div>
+      }
+    </div>
   </div>
 }
+
+const PickColorBtn: FC<{ onPickColor: () => void }> = ({onPickColor}) =>
+  <button
+    className="game bottom-block submit-btn"
+    type="button"
+    onClick={onPickColor}
+  >
+    Pick
+  </button>
+
+const RestartBtn: FC<{ restartGame: () => void }> = ({restartGame}) =>
+  <button
+    className="game bottom-block reset-options reset-game-btn"
+    type="button"
+    onClick={restartGame}
+  >
+    Restart
+  </button>
 
 export const InfoBar: FC<{
   state: Current<DifficultyState> & Current<GameStateState>
@@ -164,7 +174,8 @@ export const InfoBar: FC<{
   ({ state: { Difficulty, GameState } }) => {
     return <div className="info-bar">
       {GameState.current.match({
-        playing: <div style={{ visibility: "hidden" }}></div>,
+        playing:
+          <div style={{ visibility: "hidden" }}></div>,
         ended: (outcome, difference, _) =>
           <div>
             {outcome.match({
@@ -173,13 +184,15 @@ export const InfoBar: FC<{
             })} Difference is {Math.round(difference)}
           </div>,
       })}
-      <div>Difficulty: {
-        displayDifficulty(GameState.current.match({
-          playing: Difficulty.current,
-          // we only display difficulty AT THE MOMENT game was over
-          ended: (_out, _diff, difficulty) => difficulty,
-        }))
-      }</div>
+      <div>
+        Difficulty: {
+          displayDifficulty(GameState.current.match({
+            playing: Difficulty.current,
+            // we only display difficulty AT THE MOMENT game was over
+            ended: (_out, _diff, difficulty) => difficulty,
+          }))
+        }
+      </div>
     </div>
   }
 

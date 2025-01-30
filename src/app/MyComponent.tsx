@@ -1,5 +1,5 @@
 "use client"
-import { ElementType, FC, ReactElement, ReactNode, useEffect, useRef, useState } from "react";
+import { FC, ReactElement, useEffect, useState } from "react";
 import { useDebounce } from "./Hooks";
 import { Color, Option, colorToCode, Current, eachIsClose, makeState, randomColor, State, None, Some, Lens, lens } from "./Utils";
 

@@ -3,20 +3,26 @@ import { FC, ReactElement, useEffect, useState } from "react";
 import { useDebounce } from "./Hooks";
 import { Color, Option, colorToCode, Current, eachIsClose, makeState, randomColor, State, None, Some, Lens, lens } from "./Utils";
 
-type Props = {
-  color: Color,
-}
+const DEFAULT_COLOR: Color = { r: 0, g: 0, b: 0 }
+const DEFAULT_DIFFICULTY = 10
 
-type OutcomeAlg<in out A> = {
-  victory: A,
-  defeat: A,
-}
+// Outcome datatype
 type Outcome = { match: <C>(alg: OutcomeAlg<C>) => C }
+// its constructors
 const Outcome: OutcomeAlg<Outcome> = {
   victory: { match: alg => alg.victory },
   defeat: { match: alg => alg.defeat },
 }
+// its deconstructor
+type OutcomeAlg<in out A> = {
+  victory: A,
+  defeat: A,
+}
 
+// OngoingGameState datatype
+type OngoingGameState = {
+  match: <A>(alg: OngoingGameStateAlg<A>) => A
+}
 type OngoingGameStateAlg<in out A> = {
   playing: A,
   ended(
@@ -25,12 +31,11 @@ type OngoingGameStateAlg<in out A> = {
     withDifficulty: number,
   ): A,
 }
-type OngoingGameState = {
-  match: <A>(alg: OngoingGameStateAlg<A>) => A
-}
 
 const displayDifficulty = (difficulty: number): string =>
   `${difficulty}/255`
+
+// Shared state
 
 type DifficultyState = { Difficulty: State<number> }
 type GuessedColorState = { GuessedColor: State<Color> }
@@ -41,9 +46,6 @@ type GameState =
   & GuessedColorState
   & PickedColorState
   & GameStateState
-
-const DEFAULT_COLOR: Color = { r: 0, g: 0, b: 0 }
-const DEFAULT_DIFFICULTY = 10
 
 export const Game: FC = () => {
   // it can not be defined initially since the only way to obtain it is to
@@ -85,9 +87,9 @@ export const Game: FC = () => {
 type GameRoundProps = {
   restartGame: () => void,
   state: DifficultyState
-  & GameStateState
-  & PickedColorState
-  & Current<GuessedColorState>
+    & GameStateState
+    & PickedColorState
+    & Current<GuessedColorState>
 }
 export const GameRound: FC<GameRoundProps> = ({
   restartGame,
@@ -113,15 +115,6 @@ export const GameRound: FC<GameRoundProps> = ({
     })
     )
   }
-  const roundResult: Option<RoundOutcomeInfo> = GameState.current.match({
-    ended: (outcome,difference,difficulty) =>
-      Some({
-        outcome,
-        difference: Math.round(difference),
-        difficulty,
-      }),
-    playing: None(),
-  })
   return <div className="game-round">
     <ColorPicker
       disabledWith={
@@ -132,11 +125,11 @@ export const GameRound: FC<GameRoundProps> = ({
       }
       state={{PickedColor}}
     />
-    <InfoBar state={{Difficulty}} roundResult={roundResult}/>
+    <InfoBar state={{Difficulty,GameState}}/>
     {GameState.current.match({
       playing: <>
         <div className="colored-background">
-          <ColoredBackground color={actualColor} child={<></>} />
+          <ColoredBackground color={actualColor} child={<></>}/>
         </div>
         <button
           className="game submit-btn"
@@ -148,7 +141,7 @@ export const GameRound: FC<GameRoundProps> = ({
       </>,
       ended: () => <>
         <div className="colored-background">
-          <ColorsComparison color={actualColor} color2={PickedColor.current} />
+          <ColorsComparison actual={actualColor} picked={PickedColor.current}/>
         </div>
         <div className="game reset-options">
           <button
@@ -165,49 +158,50 @@ export const GameRound: FC<GameRoundProps> = ({
   </div>
 }
 
-type RoundOutcomeInfo = {
-  outcome: Outcome,
-  difference: number,
-  difficulty: number,
-}
-
 export const InfoBar: FC<{
-  roundResult: Option<RoundOutcomeInfo>,
-  state: Current<DifficultyState>
+  state: Current<DifficultyState> & Current<GameStateState>
 }> =
-  ({roundResult,state: {Difficulty}}) => {
+  ({state: {Difficulty,GameState}}) => {
   return <div className="info-bar">
-    {roundResult.match({
-      none: <div style={{visibility: "hidden"}}></div>,
-      some: ({outcome,difference}) =>
+    {GameState.current.match({
+      playing: <div style={{visibility: "hidden"}}></div>,
+      ended: (outcome,difference,_) =>
         <div>
           {outcome.match({
             victory: "Great job!",
             defeat: "Wrong!",
-          })} Difference is {difference}
+          })} Difference is {Math.round(difference)}
         </div>,
     })}
     <div>Difficulty: {
-      displayDifficulty(roundResult.match({
-        none: Difficulty.current,
+      displayDifficulty(GameState.current.match({
+        playing: Difficulty.current,
         // we only display difficulty AT THE MOMENT game was over
-        some: ({difficulty}) => difficulty,
+        ended: (_out,_diff,difficulty) => difficulty,
       }))
     }</div>
   </div>
 }
 
-export const ColorsComparison: FC<Props & { color2: Color }> = ({ color, color2 }) =>
+export const ColorsComparison: FC<{ actual: Color, picked: Color }> =
+  ({ actual, picked }) =>
   <>
     <div className="colored-background comparison">
-      <ColoredBackground color={color} child={<>Actual color {colorToCode(color)}</>} />
+      <ColoredBackground
+        color={actual}
+        child={<>Actual color {colorToCode(actual)}</>}
+      />
     </div>
     <div className="colored-background comparison">
-      <ColoredBackground color={color2} child={<>Your color {colorToCode(color2)}</>} />
+      <ColoredBackground
+        color={picked}
+        child={<>Your color {colorToCode(picked)}</>}
+      />
     </div>
   </>
 
-export const ColoredBackground: FC<Props & { child: ReactElement }> = ({ color, child }) =>
+export const ColoredBackground: FC<{ color: Color, child: ReactElement }> =
+  ({ color, child }) =>
   <>
     <div className="colored-background background" style={{
       backgroundColor: colorToCode(color),
@@ -219,9 +213,7 @@ export const ColoredBackground: FC<Props & { child: ReactElement }> = ({ color, 
 type ColorPickerProps = {
   disabledWith: Option<{ actual: Color, outcome: Outcome }>,
   state: PickedColorState,
-  // update: (color: () => Color) => void,
-} 
-
+}
 
 const withR: Lens<Color,number> =
   lens(({r}) => r,({g,b},r) => ({r,g,b}))
@@ -230,7 +222,9 @@ const withG: Lens<Color,number> =
 const withB: Lens<Color,number> =
   lens(({b}) => b, ({g,r},b) => ({r,g,b}))
 
-const ColorPicker: FC<ColorPickerProps> = ({ disabledWith, state: {PickedColor} }) => {
+const ColorPicker: FC<ColorPickerProps> =
+  ({ disabledWith, state: {PickedColor} }) => {
+
   const currentColor: Color = PickedColor.current
 
   const disabled = disabledWith.match({
@@ -354,7 +348,9 @@ const DifficultyPicker: FC<{ state: DifficultyState }> =
               onChange={
                 e => {
                   const newValue = e.currentTarget.valueAsNumber
-                  debounce(() => Difficulty.update(() => newValue))
+                  debounce(() =>
+                    Difficulty.update(() => newValue)
+                  )
                 }
               }
               className={`slider difficulty-picker`}

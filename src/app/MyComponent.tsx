@@ -29,6 +29,9 @@ type OngoingGameState = {
   match: <A>(alg: OngoingGameStateAlg<A>) => A
 }
 
+const displayDifficulty = (difficulty: number): string =>
+  `${difficulty}/255`
+
 type DifficultyState = { Difficulty: State<number> }
 type GuessedColorState = { GuessedColor: State<Color> }
 type PickedColorState = { PickedColor: State<Color> }
@@ -185,11 +188,11 @@ export const InfoBar: FC<{
         </div>,
     })}
     <div>Difficulty: {
-      roundResult.match({
+      displayDifficulty(roundResult.match({
         none: Difficulty.current,
         // we only display difficulty AT THE MOMENT game was over
         some: ({difficulty}) => difficulty,
-      })
+      }))
     }</div>
   </div>
 }
@@ -343,7 +346,9 @@ const DifficultyPicker: FC<{ state: DifficultyState }> =
     return <>
       <div className="difficulty-picker"> 
           <div>
-            Restart with difficulty: {Difficulty.current}
+            Restart with difficulty: {
+              displayDifficulty(Difficulty.current)
+            }
           </div> 
           <div>
             <input

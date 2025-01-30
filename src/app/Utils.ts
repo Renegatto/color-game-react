@@ -50,3 +50,13 @@ export type Option<in out A> = {
 export const Some = <A>(x: A): Option<A> =>
   ({ match: alg => alg.some(x) })
 export const None = <T>(): Option<T> => ({ match: alg => alg.none })
+
+export type Lens<S,A> = {
+  get: (s: S) => A,
+  modify: (s: S, a: A) => S,
+}
+export const lens = <S,A>(
+  get: (s: S) => A,
+  modify: (s: S,a: A) => S,
+): Lens<S,A> =>
+  ({get,modify})

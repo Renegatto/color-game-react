@@ -1,7 +1,7 @@
 "use client"
 import { ElementType, FC, ReactElement, ReactNode, useEffect, useRef, useState } from "react";
 import { useDebounce } from "./Hooks";
-import { Color, Option, colorToCode, Current, eachIsClose, makeState, randomColor, State, None, Some } from "./Utils";
+import { Color, Option, colorToCode, Current, eachIsClose, makeState, randomColor, State, None, Some, Lens, lens } from "./Utils";
 
 type Props = {
   color: Color,
@@ -127,7 +127,7 @@ export const GameRound: FC<GameRoundProps> = ({
           playing: None()
         })
       }
-      update={PickedColor.update}
+      state={{PickedColor}}
     />
     <InfoBar state={{Difficulty}} roundResult={roundResult}/>
     {GameState.current.match({
@@ -188,10 +188,7 @@ export const InfoBar: FC<{
       roundResult.match({
         none: Difficulty.current,
         // we only display difficulty AT THE MOMENT game was over
-        some: ({difficulty}) => {
-          console.log("dific",difficulty)
-          return difficulty
-        },
+        some: ({difficulty}) => difficulty,
       })
     }</div>
   </div>
@@ -218,43 +215,51 @@ export const ColoredBackground: FC<Props & { child: ReactElement }> = ({ color, 
 
 type ColorPickerProps = {
   disabledWith: Option<{ actual: Color, outcome: Outcome }>,
-  update: (color: () => Color) => void,
-}
+  state: PickedColorState,
+  // update: (color: () => Color) => void,
+} 
 
-const ColorPicker: FC<ColorPickerProps> = ({ disabledWith, update }) => {
-  const [r, setR] = useState(0)
-  const [g, setG] = useState(0)
-  const [b, setB] = useState(0)
-  const currentColor: Color = { r, g, b }
+
+const withR: Lens<Color,number> =
+  lens(({r}) => r,({g,b},r) => ({r,g,b}))
+const withG: Lens<Color,number> =
+  lens(({g}) => g, ({r,b},g) => ({r,g,b}))
+const withB: Lens<Color,number> =
+  lens(({b}) => b, ({g,r},b) => ({r,g,b}))
+
+const ColorPicker: FC<ColorPickerProps> = ({ disabledWith, state: {PickedColor} }) => {
+  const currentColor: Color = PickedColor.current
 
   const disabled = disabledWith.match({
     some: () => true,
     none: false
   })
-  const drawGhostSlider = (pickColor: (color: Color) => number): ReactElement =>
+  const drawGhostSlider = (component: Lens<Color,number>): ReactElement =>
     <GhostSlider value={disabledWith.match({
       none: None(),
-      some: ({actual}) => Some(pickColor(actual)),
+      some: ({actual}) => Some(component.get(actual)),
     })}/>
   const drawColorSlider = (
-    setColor: (color: number) => void,
-    colorOf: (color: Color) => number,
+    component: Lens<Color,number>,
     colorName: string,
   ): ReactElement =>
     <ColorSlider
       disabled={disabled}
-      onChange={c => { setColor(c); update(() => currentColor) }}
-      child={<>{colorName}: {colorOf(currentColor)}</>}
+      onChange={c =>
+        PickedColor.update(() =>
+          component.modify(currentColor,c)
+        )
+      }
+      child={<>{colorName}: {component.get(currentColor)}</>}
     />
 
   const drawSlidersPair = (
-    updateColor: (color: number) => void,
-    colorOf: (color: Color) => number,
+    component: Lens<Color,number>,
     colorName: string,
   ): ReactElement =>
     <>
-      {drawColorSlider(updateColor, colorOf, colorName)}
-      {drawGhostSlider(colorOf)}
+      {drawColorSlider(component, colorName)}
+      {drawGhostSlider(component)}
     </>
 
   const whenDisabled = (child: (subclass: string) => ReactElement): ReactElement =>
@@ -270,9 +275,9 @@ const ColorPicker: FC<ColorPickerProps> = ({ disabledWith, update }) => {
     <div className={`color-picker ${subclass}`} />
 
   return <div className={"color-picker"}>
-    {drawSlidersPair(setR, color => color.r, "R")}
-    {drawSlidersPair(setG, color => color.g, "G")}
-    {drawSlidersPair(setB, color => color.b, "B")}
+    {drawSlidersPair(withR, "R")}
+    {drawSlidersPair(withG, "G")}
+    {drawSlidersPair(withB, "B")}
     {whenDisabled(overlayOnDisabled)}
   </div>
 }
@@ -330,20 +335,32 @@ const ColorSlider: FC<ColorSliderProps> = ({ disabled, child, onChange }) => {
 const DifficultyPicker: FC<{ state: DifficultyState }> =
   ({ state: { Difficulty } }) => {
     const debounce = useDebounce(10)
+        // <div style={{flex: "inherit", position:"relative", flexDirection: "column"}}>
+        // <div style={{flex: "inherit", position:"relative", flexDirection: "column"}}>
+        //   
+        // </div>
+    // <div className="difficulty-picker container">
     return <>
-      {Difficulty.current}
-      <input
-        type="range"
-        min="0"
-        max="100"
-        defaultValue={Difficulty.current}
-        onChange={
-          e => {
-            const newValue = e.currentTarget.valueAsNumber
-            debounce(() => Difficulty.update(() => newValue))
-          }
-        }
-        className={`slider difficulty-picker`}
-      />
+      <div className="difficulty-picker"> 
+          <div>
+            Restart with difficulty: {Difficulty.current}
+          </div> 
+          <div>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              defaultValue={Difficulty.current}
+              onChange={
+                e => {
+                  const newValue = e.currentTarget.valueAsNumber
+                  debounce(() => Difficulty.update(() => newValue))
+                }
+              }
+              className={`slider difficulty-picker`}
+            />
+          </div>
+      </div>
     </>
+      // </div>
   }

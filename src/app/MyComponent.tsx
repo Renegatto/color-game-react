@@ -7,15 +7,23 @@ type Props = {
   color: Color,
 }
 
-type OutcomeAlg<A> = {
+type OutcomeAlg<in out A> = {
   victory: A,
   defeat: A,
 }
 type Outcome = { match: <C>(alg: OutcomeAlg<C>) => C }
+const Outcome: OutcomeAlg<Outcome> = {
+  victory: { match: alg => alg.victory },
+  defeat: { match: alg => alg.defeat },
+}
 
-type OngoingGameStateAlg<A> = {
+type OngoingGameStateAlg<in out A> = {
   playing: A,
-  ended(failed: boolean, difference: number): A,
+  ended(
+    failed: Outcome,
+    difference: number,
+    withDifficulty: number,
+  ): A,
 }
 type OngoingGameState = {
   match: <A>(alg: OngoingGameStateAlg<A>) => A
@@ -94,24 +102,29 @@ export const GameRound: FC<GameRoundProps> = ({
       actualColor
     )
     GameState.update(() => ({
-      match: alg => alg.ended(!matches, maxDifference)
+      match: alg => alg.ended(
+        matches ? Outcome.victory : Outcome.defeat,
+        maxDifference,
+        Difficulty.current,
+      )
     })
     )
   }
-  const roundResult = GameState.current.match({
-    playing: None,
-    ended: (failed,difference) =>
+  const roundResult: Option<RoundOutcomeInfo> = GameState.current.match({
+    ended: (failed,difference,difficulty) =>
       Some({
-        outcome: { match: alg => failed ? alg.defeat : alg.victory} as Outcome,
+        outcome: failed ? Outcome.defeat : Outcome.victory,
         difference: Math.round(difference),
-      })
+        difficulty,
+      }),
+    playing: None(),
   })
   return <div className="game-round">
     <ColorPicker
       disabledWith={
         GameState.current.match({
-          ended: failed => Some({ actual: actualColor, won: !failed }),
-          playing: None
+          ended: outcome => Some({ actual: actualColor, outcome }),
+          playing: None()
         })
       }
       update={PickedColor.update}
@@ -149,8 +162,14 @@ export const GameRound: FC<GameRoundProps> = ({
   </div>
 }
 
+type RoundOutcomeInfo = {
+  outcome: Outcome,
+  difference: number,
+  difficulty: number,
+}
+
 export const InfoBar: FC<{
-  roundResult: Option<{outcome: Outcome, difference: number}>,
+  roundResult: Option<RoundOutcomeInfo>,
   state: Current<DifficultyState>
 }> =
   ({roundResult,state: {Difficulty}}) => {
@@ -165,7 +184,16 @@ export const InfoBar: FC<{
           })} Difference is {difference}
         </div>,
     })}
-    <div>Difficulty: {Difficulty.current}</div>
+    <div>Difficulty: {
+      roundResult.match({
+        none: Difficulty.current,
+        // we only display difficulty AT THE MOMENT game was over
+        some: ({difficulty}) => {
+          console.log("dific",difficulty)
+          return difficulty
+        },
+      })
+    }</div>
   </div>
 }
 
@@ -189,7 +217,7 @@ export const ColoredBackground: FC<Props & { child: ReactElement }> = ({ color, 
   </>
 
 type ColorPickerProps = {
-  disabledWith: Option<{ actual: Color, won: boolean }>,
+  disabledWith: Option<{ actual: Color, outcome: Outcome }>,
   update: (color: () => Color) => void,
 }
 
@@ -205,7 +233,7 @@ const ColorPicker: FC<ColorPickerProps> = ({ disabledWith, update }) => {
   })
   const drawGhostSlider = (pickColor: (color: Color) => number): ReactElement =>
     <GhostSlider value={disabledWith.match({
-      none: None,
+      none: None(),
       some: ({actual}) => Some(pickColor(actual)),
     })}/>
   const drawColorSlider = (
@@ -229,14 +257,17 @@ const ColorPicker: FC<ColorPickerProps> = ({ disabledWith, update }) => {
       {drawGhostSlider(colorOf)}
     </>
 
-  const whenDisabled = (child: (won: boolean) => ReactElement): ReactElement =>
+  const whenDisabled = (child: (subclass: string) => ReactElement): ReactElement =>
     disabledWith.match({
-      some: ({won}) => child(won),
+      some: ({outcome}) => 
+        child(outcome.match({
+          victory: "overlay-on-victory",
+          defeat: "overlay-on-defeat",
+        })),
       none: <></>,
     })
-  const overlayOnDisabled = (won: boolean) =>
-    <div className={`color-picker ${won ? "overlay-on-victory" : "overlay-on-defeat"
-      }`} />
+  const overlayOnDisabled = (subclass: string) =>
+    <div className={`color-picker ${subclass}`} />
 
   return <div className={"color-picker"}>
     {drawSlidersPair(setR, color => color.r, "R")}
@@ -271,10 +302,8 @@ type ColorSliderProps = {
 }
 
 const ColorSlider: FC<ColorSliderProps> = ({ disabled, child, onChange }) => {
-  const [value, setValue] = useState(0)
   const debounce = useDebounce(10)
   const change = (val: number): void => {
-    setValue(val)
     onChange(val)
   }
   return <>

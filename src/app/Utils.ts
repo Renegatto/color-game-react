@@ -22,7 +22,7 @@ export const eachIsClose = (maxDifference: number, color1: Color, color2: Color)
   ].map(Math.abs)
   return [
     differences.every(diff => diff <= maxDifference),
-    differences.sort((a,b) => b - a)[0]
+    differences.sort((a,b) => b - a)[0]!
   ]
 }
 
@@ -40,13 +40,13 @@ export const randomColor = (): Color => {
   }
 }
 
-type OptionAlg<B,A> = {
+type OptionAlg<in out B, in out A> = {
   none: A,
   some(x: B): A,
 }
-export type Option<A> = {
+export type Option<in out A> = {
   match: <C>(alg: OptionAlg<A,C>) => C
 }
 export const Some = <A>(x: A): Option<A> =>
   ({ match: alg => alg.some(x) })
-export const None: Option<any> = { match: alg => alg.none }
+export const None = <T>(): Option<T> => ({ match: alg => alg.none })

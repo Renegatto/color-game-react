@@ -1,7 +1,7 @@
 "use client"
 import { FC, ReactElement, useEffect, useState } from "react";
 import { useDebounce } from "./Hooks";
-import { Color, Option, colorToCode, Current, eachIsClose, makeState, randomColor, State, None, Some, Lens, lens } from "./Utils";
+import { Color, Option, colorToCode, Current, eachIsClose, State, randomColor, Lens, SimpleLens, Some, None } from "./Utils";
 
 const DEFAULT_COLOR: Color = { r: 0, g: 0, b: 0 }
 const DEFAULT_DIFFICULTY = 10
@@ -71,10 +71,10 @@ export const Game: FC = () => {
     return <></>
   } else {
     const state: GameState = {
-      Difficulty: makeState(difficulty, setDifficulty),
-      GuessedColor: makeState(guessedColor, setGuessedColor),
-      PickedColor: makeState(pickedColor, setPickedColor),
-      GameState: makeState(gameState, setGameState),
+      Difficulty: State(difficulty, setDifficulty),
+      GuessedColor: State(guessedColor, setGuessedColor),
+      PickedColor: State(pickedColor, setPickedColor),
+      GameState: State(gameState, setGameState),
     }
     return <GameRound
       key={gameId}
@@ -215,12 +215,9 @@ type ColorPickerProps = {
   state: PickedColorState,
 }
 
-const withR: Lens<Color, number> =
-  lens(({ r }) => r, ({ g, b }, r) => ({ r, g, b }))
-const withG: Lens<Color, number> =
-  lens(({ g }) => g, ({ r, b }, g) => ({ r, g, b }))
-const withB: Lens<Color, number> =
-  lens(({ b }) => b, ({ g, r }, b) => ({ r, g, b }))
+const withR: SimpleLens<Color, number> = Lens.property("r")
+const withG: SimpleLens<Color, number> = Lens.property("g")
+const withB: SimpleLens<Color, number> = Lens.property("b")
 
 const ColorPicker: FC<ColorPickerProps> =
   ({ disabledWith, state: { PickedColor } }) => {
@@ -231,13 +228,13 @@ const ColorPicker: FC<ColorPickerProps> =
       some: () => true,
       none: false
     })
-    const drawGhostSlider = (component: Lens<Color, number>): ReactElement =>
+    const drawGhostSlider = (component: SimpleLens<Color, number>): ReactElement =>
       <GhostSlider value={disabledWith.match({
         none: None(),
         some: ({ actual }) => Some(component.get(actual)),
       })} />
     const drawColorSlider = (
-      component: Lens<Color, number>,
+      component: SimpleLens<Color, number>,
       colorName: string,
     ): ReactElement =>
       <ColorSlider
@@ -251,7 +248,7 @@ const ColorPicker: FC<ColorPickerProps> =
       />
 
     const drawSlidersPair = (
-      component: Lens<Color, number>,
+      component: SimpleLens<Color, number>,
       colorName: string,
     ): ReactElement =>
       <>

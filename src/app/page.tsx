@@ -1,4 +1,4 @@
-import { Game } from './MyComponent'
+import { Game } from './Game'
 
 export default function Home() {
   return (

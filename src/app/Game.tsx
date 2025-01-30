@@ -133,9 +133,7 @@ export const GameRound: FC<GameRoundProps> = ({
     <div className="colored-background">
       { stillPlaying
         ? <ColoredBackground color={actualColor} child={<></>} />
-        : <div className="colored-background">
-            <ColorsComparison actual={actualColor} picked={PickedColor.current} />
-          </div>
+        : <ColorsComparison actual={actualColor} picked={PickedColor.current} />
       }
     </div>
     <div className="game bottom-block">

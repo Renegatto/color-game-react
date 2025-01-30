@@ -114,9 +114,9 @@ export const GameRound: FC<GameRoundProps> = ({
     )
   }
   const roundResult: Option<RoundOutcomeInfo> = GameState.current.match({
-    ended: (failed,difference,difficulty) =>
+    ended: (outcome,difference,difficulty) =>
       Some({
-        outcome: failed ? Outcome.defeat : Outcome.victory,
+        outcome,
         difference: Math.round(difference),
         difficulty,
       }),
@@ -200,10 +200,10 @@ export const InfoBar: FC<{
 export const ColorsComparison: FC<Props & { color2: Color }> = ({ color, color2 }) =>
   <>
     <div className="colored-background comparison">
-      <ColoredBackground color={color} child={<>Color {colorToCode(color)}</>} />
+      <ColoredBackground color={color} child={<>Actual color {colorToCode(color)}</>} />
     </div>
     <div className="colored-background comparison">
-      <ColoredBackground color={color2} child={<>Color {colorToCode(color2)}</>} />
+      <ColoredBackground color={color2} child={<>Your color {colorToCode(color2)}</>} />
     </div>
   </>
 
@@ -338,11 +338,6 @@ const ColorSlider: FC<ColorSliderProps> = ({ disabled, child, onChange }) => {
 const DifficultyPicker: FC<{ state: DifficultyState }> =
   ({ state: { Difficulty } }) => {
     const debounce = useDebounce(10)
-        // <div style={{flex: "inherit", position:"relative", flexDirection: "column"}}>
-        // <div style={{flex: "inherit", position:"relative", flexDirection: "column"}}>
-        //   
-        // </div>
-    // <div className="difficulty-picker container">
     return <>
       <div className="difficulty-picker"> 
           <div>
@@ -367,5 +362,4 @@ const DifficultyPicker: FC<{ state: DifficultyState }> =
           </div>
       </div>
     </>
-      // </div>
   }

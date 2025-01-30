@@ -164,10 +164,9 @@
     background-color: #aa8888;
   };
   &.reset-options {
-    display: flex;
+    display: grid;
+    grid-template-columns: 2fr 3fr;
     height: 10%;
-    flex-direction: row;
-    justify-content: space-between;
     position: relative;
     &.reset-game-btn {
       @include btn;

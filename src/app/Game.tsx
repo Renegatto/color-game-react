@@ -1,5 +1,5 @@
 "use client"
-import { createElement, CSSProperties, FC, InputHTMLAttributes, ReactElement, useEffect, useState } from "react";
+import { createElement, DetailedHTMLProps, FC, HTMLAttributes, InputHTMLAttributes, ReactElement, useEffect, useState } from "react";
 import { useDebounce } from "./Hooks";
 import { Color, Option, colorToCode, Current, eachIsClose, State, randomColor, Lens, SimpleLens, Some, None } from "./Utils";
 
@@ -50,11 +50,7 @@ type GameState =
 // Algebras
 
 type Div<in out A> = {
-  div(
-    className: string,
-    style: CSSProperties,
-    hidden?: boolean,
-  ): (childs: A[]) => A,
+  div(attrs: DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>): (childs: A[]) => A,
 }
 type Str<in out A> = {
   str(text: string): A,
@@ -64,6 +60,15 @@ type Empty<in out A> = {
 }
 type Fold<in out A> = {
   fold: (elems: A[]) => A,
+}
+type UseDebounce<in out A> = {
+  useDebounce: (
+    delayMs: number,
+    cont: (debounce: (delayed: () => void) => void) => A
+    ) => A,
+}
+type Input<in out A> = {
+  input: (attrs: InputHTMLAttributes<HTMLInputElement>) => A
 }
 type DifficultyPicker<in out A> = {
   difficultyPicker: (state: DifficultyState) => A,
@@ -158,7 +163,7 @@ export const GameRound = ({
     playing: true,
     ended: () => false,
   })
-  return alg.div("game-round",{})([
+  return alg.div({className: "game-round"})([
     ColorPicker(
       GameState.current.match({
         ended: outcome => Some({ actual: actualColor, outcome }),
@@ -167,15 +172,15 @@ export const GameRound = ({
       { PickedColor },
     )(alg),
     InfoBar({ Difficulty, GameState })(alg),
-    alg.div("colored-background",{})([
+    alg.div({className: "colored-background"})([
       stillPlaying
         ? ColoredBackground(actualColor,alg.empty)(alg)
         : ColorsComparison(actualColor,PickedColor.current)(alg)
     ]),
-    alg.div("game bottom-block",{})([
+    alg.div({className: "game bottom-block"})([
       stillPlaying
         ? alg.pickColorBtn(onPickColor)
-        : alg.div("game bottom-block reset-options",{})([
+        : alg.div({className: "game bottom-block reset-options"})([
             alg.restartBtn(restartGame),
             alg.difficultyPicker({Difficulty}),
           ])
@@ -206,11 +211,11 @@ export const InfoBar =
     Current<DifficultyState> & Current<GameStateState>
   ) =>
   <A,>(alg: Div<A> & Str<A>): A =>
-  alg.div("info-bar",{})([
+  alg.div({className: "info-bar"})([
     GameState.current.match({
-      playing: alg.div("",{},true)([]),
+      playing: alg.div({hidden: true})([]),
       ended: (outcome, difference, _) =>
-        alg.div("",{})([
+        alg.div({})([
           alg.str(outcome.match({
             victory: "Great job!",
             defeat: "Wrong!",
@@ -218,7 +223,7 @@ export const InfoBar =
           alg.str(`Difference is ${Math.round(difference)}`),
         ]),
     }),
-    alg.div("",{})([
+    alg.div({})([
       alg.str(`Difficulty: ${
         displayDifficulty(GameState.current.match({
           playing: Difficulty.current,
@@ -233,10 +238,10 @@ export const ColorsComparison =
   (actual: Color, picked: Color) =>
   <A,>(alg: Div<A> & Str<A> & Fold<A>): A =>
   alg.fold([
-    alg.div("colored-background comparison",{})([
+    alg.div({className: "colored-background comparison"})([
       ColoredBackground(actual,alg.str(`Actual color ${colorToCode(actual)}`))(alg),
     ]),
-    alg.div("colored-background comparison",{})([
+    alg.div({className: "colored-background comparison"})([
       ColoredBackground(
         picked,
         alg.str(`Your color ${colorToCode(picked)}`),
@@ -247,8 +252,9 @@ export const ColorsComparison =
 export const ColoredBackground =
   <A,>(color: Color, child: A) =>
   (alg: Div<A>): A =>
-  alg.div("colored-background background", {
-    backgroundColor: colorToCode(color),
+  alg.div( {
+    className: "colored-background background",
+    style: {backgroundColor: colorToCode(color)},
   })
   ([child])
   
@@ -304,9 +310,9 @@ const ColorPicker = (
       none: alg.empty,
     })
   const overlayOnDisabled = (subclass: string) =>
-    alg.div(`color-picker ${subclass}`,{})([])
+    alg.div({className: `color-picker ${subclass}`})([])
 
-  return alg.div("color-picker",{})([
+  return alg.div({className: "color-picker"})([
     drawSlidersPair(withR, "R"),
     drawSlidersPair(withG, "G"),
     drawSlidersPair(withB, "B"),
@@ -328,7 +334,7 @@ const GhostSlider: FC<{ value: Option<number> }> = ({ value }) =>
         }}
         min="0"
         max="255"
-        value={value.match({ some: x => x, none: undefined })}
+        value={value.match({ some: x => x, none: -1 })}
         className="slider ghost"
       />
     </div>
@@ -368,23 +374,15 @@ const ColorSlider: FC<ColorSliderProps> = ({ disabled, child, onChange }) => {
 
 const DifficultyPicker =
  ({ Difficulty } : DifficultyState) =>
-  <A,>(
-    alg: {
-      useDebounce: (
-        delayMs: number,
-        cont: (debounce: (delayed: () => void) => void) => A,
-      ) => A,
-      input: (attrs: InputHTMLAttributes<HTMLInputElement>) => A,
-    } & Div<A> & Str<A>,
-  ): A =>
+  <A,>(alg: Div<A> & Str<A> & UseDebounce<A> & Input<A>): A =>
     alg.useDebounce(10, debounce =>
-      alg.div("difficulty-picker",{})([
-        alg.div("",{})([
+      alg.div({className: "difficulty-picker"})([
+        alg.div({})([
           alg.str(`Restart with difficulty: ${
             displayDifficulty(Difficulty.current)
           }`)
         ]),
-        alg.div('',{})([
+        alg.div({})([
           alg.input({
             type: "range",
             min: "0",
@@ -404,15 +402,8 @@ const DifficultyPicker =
     )
 namespace Algebras {
   export const divElement: Div<ReactElement> = {
-    div: (
-      className,
-      style,
-      hidden,
-    ) => childs =>
-    <div className={className} style={style} hidden={hidden}>
-      { foldElements.fold(childs)
-      }
-    </div>,
+    div: props => childs =>
+      createElement('div',props,foldElements.fold(childs)),
   }
   export const strElement: Str<ReactElement> = {
     str: text => <>{text}</>,
@@ -438,6 +429,15 @@ namespace Algebras {
     colorSlider: (disabled, onChange, child) =>
       <ColorSlider disabled={disabled} onChange={onChange} child={child}/>,
   }
+  export const useDebounceElement: UseDebounce<ReactElement> = {
+    useDebounce: (ms,cont) => {
+      const debounce = useDebounce(ms)
+      return cont(debounce)
+    }
+  }
+  export const inputElement: Input<ReactElement> = {
+    input: props => createElement('input',props)
+  }
 
   const foldText = (xs: string[]): string =>
     xs.reduce((a,b) => `${a}${b}`,'')
@@ -449,14 +449,8 @@ namespace Algebras {
     & Buttons<string>
     & DifficultyPicker<string>
     & Sliders<string> = {
-    div: (className,style,hidden) => childs =>
-      `[div class='${
-          className
-        }' style=${
-          JSON.stringify(style)
-        } ${
-          hidden === undefined ? 'hidden' : ''
-        }]${
+    div: props => childs =>
+      `[div props='${JSON.stringify(props)}']${
         foldText(childs)
       }[end div]`,
     str: text => `'${text}'`,
@@ -494,9 +488,6 @@ const DifficultyPickerComponent: FC<{ state: DifficultyState }> = ({state}) =>
   DifficultyPicker(state)({
     ...Algebras.divElement,
     ...Algebras.strElement,
-    useDebounce: (ms,cont): ReactElement => {
-      const debounce = useDebounce(ms)
-      return cont(debounce)
-    },
-    input: attrs => createElement('input',attrs)
+    ...Algebras.useDebounceElement,
+    ...Algebras.inputElement,
   })

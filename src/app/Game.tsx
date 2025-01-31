@@ -70,9 +70,6 @@ type UseDebounce<in out A> = {
 type Input<in out A> = {
   input: (attrs: InputHTMLAttributes<HTMLInputElement>) => A
 }
-type DifficultyPicker<in out A> = {
-  difficultyPicker: (state: DifficultyState) => A,
-}
 type Buttons<in out A> = {
   restartBtn: (restartGame: () => void) => A,
   pickColorBtn: (onPickColor: () => void) => A,
@@ -132,6 +129,8 @@ type GameRoundProps = {
   & PickedColorState
   & Current<GuessedColorState>
 }
+type GameRound<A> = Div<A> & Empty<A> & Str<A> & Fold<A> & Sliders<A> & Buttons<A> & UseDebounce<A> & Input<A>
+
 export const GameRound = ({
   restartGame,
   state: {
@@ -141,9 +140,7 @@ export const GameRound = ({
     GuessedColor: { current: actualColor },
   },
 }: GameRoundProps) =>
-<A,>(
-  alg: Div<A> & Empty<A> & Str<A> & Fold<A> & Sliders<A> & Buttons<A> & DifficultyPicker<A>,
-): A => {
+<A,>(alg: GameRound<A>): A => {
   const onPickColor = (): void => {
     const [matches, maxDifference] = eachIsClose(
       Difficulty.current,
@@ -182,7 +179,7 @@ export const GameRound = ({
         ? alg.pickColorBtn(onPickColor)
         : alg.div({className: "game bottom-block reset-options"})([
             alg.restartBtn(restartGame),
-            alg.difficultyPicker({Difficulty}),
+            DifficultyPicker({Difficulty})(alg),
           ])
     ]),
   ]);
@@ -417,9 +414,6 @@ namespace Algebras {
       <></>,
       ),
   }
-  export const difficultyPickerElement: DifficultyPicker<ReactElement> = {
-    difficultyPicker: state => <DifficultyPickerComponent state={state}/>,
-  }
   export const buttonsElements: Buttons<ReactElement> = {
     restartBtn: restartGame => <RestartBtn restartGame={restartGame}/>,
     pickColorBtn: onPickColor => <PickColorBtn onPickColor={onPickColor}/>,
@@ -441,14 +435,7 @@ namespace Algebras {
 
   const foldText = (xs: string[]): string =>
     xs.reduce((a,b) => `${a}${b}`,'')
-  export const stringSchema:
-    Div<string>
-    & Str<string>
-    & Empty<string>
-    & Fold<string>
-    & Buttons<string>
-    & DifficultyPicker<string>
-    & Sliders<string> = {
+  export const stringSchema: GameRound<string> = {
     div: props => childs =>
       `[div props='${JSON.stringify(props)}']${
         foldText(childs)
@@ -457,37 +444,48 @@ namespace Algebras {
     empty: '',
     fold: foldText,
     restartBtn: () => '[RestartBtn]',
-    difficultyPicker: (difficultyState) =>
-      `[DifficultyPicker difficulty=${difficultyState.Difficulty.current}]`,
+    useDebounce: (ms, cont) =>
+      `[useDebounce ${ms}]${ cont(_ => {}) }[end useDebounce]`,
     pickColorBtn: () => '[PickColorBtn]',
     ghostSlider: (disabledWith: Option<number>) =>
       disabledWith.match({
         some: n => `[GhostSlider n=${n}]`,
         none: '[GhostSlider]'
       }),
+    input: props => `[input props=${JSON.stringify(props)}]`,
     colorSlider: (disabled, _, child) =>
       `[ColorSlider ${disabled ? 'disabled' : ''}]${child}[end ColorSlider]`,
   }
 }
 
-const GameRoundComponent: FC<GameRoundProps> = (props) =>
-  GameRound(props)({
-    ...Algebras.divElement,
-    ...Algebras.strElement,
-    ...Algebras.emptyElement,
-    ...Algebras.foldElements,
-    ...Algebras.difficultyPickerElement,
-    ...Algebras.buttonsElements,
-    ...Algebras.sliderElements,
-  })
+const gameRoundElements: GameRound<ReactElement> = {
+  ...Algebras.divElement,
+  ...Algebras.strElement,
+  ...Algebras.emptyElement,
+  ...Algebras.foldElements,
+  ...Algebras.inputElement,
+  ...Algebras.useDebounceElement,
+  ...Algebras.buttonsElements,
+  ...Algebras.sliderElements,
+}
 
+// normal GameRound
+const GameRoundComponent: FC<GameRoundProps> = (props) =>
+  GameRound(props)(gameRoundElements)
+
+
+const capitalized = <A,Alg>(
+  items: (alg: Alg & Str<A>) => A,
+  alg: Alg & Str<A>,
+): A => items({...alg, str: text => alg.str(text.toUpperCase())})
+
+const capitalizedGameRound = (props: GameRoundProps) =>
+  <A,>(alg: GameRound<A>) => capitalized(GameRound(props), alg)
+
+// capitalized GameRound
+const CapGameRoundComponent: FC<GameRoundProps> = (props) =>
+  capitalizedGameRound(props)(gameRoundElements)
+
+// GameRound schema
 const GameRoundSchema = (props: GameRoundProps): string =>
   GameRound(props)(Algebras.stringSchema)
-
-const DifficultyPickerComponent: FC<{ state: DifficultyState }> = ({state}) =>
-  DifficultyPicker(state)({
-    ...Algebras.divElement,
-    ...Algebras.strElement,
-    ...Algebras.useDebounceElement,
-    ...Algebras.inputElement,
-  })

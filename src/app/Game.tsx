@@ -1,5 +1,5 @@
 "use client"
-import { CSSProperties, FC, ReactElement, useEffect, useState } from "react";
+import { createElement, CSSProperties, FC, InputHTMLAttributes, ReactElement, useEffect, useState } from "react";
 import { useDebounce } from "./Hooks";
 import { Color, Option, colorToCode, Current, eachIsClose, State, randomColor, Lens, SimpleLens, Some, None } from "./Utils";
 
@@ -366,37 +366,42 @@ const ColorSlider: FC<ColorSliderProps> = ({ disabled, child, onChange }) => {
   </>
 }
 
-const DifficultyPicker: FC<{ state: DifficultyState }> =
-  ({ state: { Difficulty } }) => {
-    const debounce = useDebounce(10)
-    return <>
-      <div className="difficulty-picker">
-        <div>
-          Restart with difficulty: {
+const DifficultyPicker =
+ ({ Difficulty } : DifficultyState) =>
+  <A,>(
+    alg: {
+      useDebounce: (
+        delayMs: number,
+        cont: (debounce: (delayed: () => void) => void) => A,
+      ) => A,
+      input: (attrs: InputHTMLAttributes<HTMLInputElement>) => A,
+    } & Div<A> & Str<A>,
+  ): A =>
+    alg.useDebounce(10, debounce =>
+      alg.div("difficulty-picker",{})([
+        alg.div("",{})([
+          alg.str(`Restart with difficulty: ${
             displayDifficulty(Difficulty.current)
-          }
-        </div>
-        <div>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            defaultValue={Difficulty.current}
-            onChange={
+          }`)
+        ]),
+        alg.div('',{})([
+          alg.input({
+            type: "range",
+            min: "0",
+            max: "100",
+            defaultValue: Difficulty.current,
+            onChange: 
               e => {
                 const newValue = e.currentTarget.valueAsNumber
                 debounce(() =>
                   Difficulty.update(() => newValue)
                 )
-              }
-            }
-            className={`slider difficulty-picker`}
-          />
-        </div>
-      </div>
-    </>
-  }
-
+              },
+            className: 'slider difficulty-picker',
+          })
+        ])
+      ])
+    )
 namespace Algebras {
   export const divElement: Div<ReactElement> = {
     div: (
@@ -422,7 +427,7 @@ namespace Algebras {
       ),
   }
   export const difficultyPickerElement: DifficultyPicker<ReactElement> = {
-    difficultyPicker: state => <DifficultyPicker state={state}/>,
+    difficultyPicker: state => <DifficultyPickerComponent state={state}/>,
   }
   export const buttonsElements: Buttons<ReactElement> = {
     restartBtn: restartGame => <RestartBtn restartGame={restartGame}/>,
@@ -484,3 +489,14 @@ const GameRoundComponent: FC<GameRoundProps> = (props) =>
 
 const GameRoundSchema = (props: GameRoundProps): string =>
   GameRound(props)(Algebras.stringSchema)
+
+const DifficultyPickerComponent: FC<{ state: DifficultyState }> = ({state}) =>
+  DifficultyPicker(state)({
+    ...Algebras.divElement,
+    ...Algebras.strElement,
+    useDebounce: (ms,cont): ReactElement => {
+      const debounce = useDebounce(ms)
+      return cont(debounce)
+    },
+    input: attrs => createElement('input',attrs)
+  })

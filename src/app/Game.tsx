@@ -20,7 +20,7 @@ type OutcomeAlg<in out A> = {
 }
 
 // OngoingGameState datatype
-type OngoingGameState = {
+export type OngoingGameState = {
   match: <A>(alg: OngoingGameStateAlg<A>) => A
 }
 type OngoingGameStateAlg<in out A> = {
@@ -30,6 +30,12 @@ type OngoingGameStateAlg<in out A> = {
     difference: number,
     withDifficulty: number,
   ): A,
+}
+export const OngoingGameState: OngoingGameStateAlg<OngoingGameState> = {
+  playing: {match: alg => alg.playing},
+  ended: (failed,difference,difficulty) => ({
+    match: alg => alg.ended(failed,difference,difficulty)
+  })
 }
 
 const displayDifficulty = (difficulty: number): string =>
@@ -41,7 +47,7 @@ type DifficultyState = { Difficulty: State<number> }
 type GuessedColorState = { GuessedColor: State<Color> }
 type PickedColorState = { PickedColor: State<Color> }
 type GameStateState = { GameState: State<OngoingGameState> }
-type GameState =
+export type GameState =
   DifficultyState
   & GuessedColorState
   & PickedColorState
@@ -49,43 +55,43 @@ type GameState =
 
 // Algebras
 
-type Div<in out A> = {
+export type Div<in out A> = {
   div(attrs: DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>): (childs: A[]) => A,
 }
-type Str<in out A> = {
+export type Str<in out A> = {
   str(text: string): A,
 }
-type Empty<in out A> = {
+export type Empty<in out A> = {
   empty: A,
 }
-type Fold<in out A> = {
+export type Fold<in out A> = {
   fold: (elems: A[]) => A,
 }
-type UseDebounce<in out A> = {
+export type UseDebounce<in out A> = {
   useDebounce: (
     delayMs: number,
     cont: (debounce: (delayed: () => void) => void) => A
     ) => A,
 }
-type Input<in out A> = {
+export type Input<in out A> = {
   input: (attrs: InputHTMLAttributes<HTMLInputElement>) => A
 }
-type Buttons<in out A> = {
+export type Buttons<in out A> = {
   restartBtn: (restartGame: () => void) => A,
   pickColorBtn: (onPickColor: () => void) => A,
 }
-type Sliders<in out A> = {
+export type Sliders<in out A> = {
   ghostSlider: (value: Option<number>) => A,
   colorSlider: (disabled: boolean, onChange: (m: number) => void, child: A) => A,
 }
 
-type UseState<in out A> = {
+export type UseState<in out A> = {
   useState: <S>(
     initialState: S | (() => S),
     andThen: (state: [S, (s: (() => S) | S | ((s0:S) => S)) => void]) => A,
   ) => A,
 }
-type UseEffect<in out A> = {
+export type UseEffect<in out A> = {
   useEffect: (
     effect: () => void,
     onChangeOf: any[],
@@ -95,10 +101,10 @@ type UseEffect<in out A> = {
 
 // Components
 
-export const GameFT = <A,>(
-  alg: UseState<A> & UseEffect<A> & GameRound<A>
-    & { GameRound: (key: number, state: GameRoundState, restartGame: () => void ) => A },
-) => 
+export const makeGameState = <A,>(
+  alg: UseState<A> & UseEffect<A> & Empty<A>,
+  cont: (state: GameState, key: number, setKey: (upd: (n: number) => number) => void) => A,
+): A =>
   alg.useState<Color | undefined>(
     undefined,
     ([guessedColor, setGuessedColor]) =>
@@ -120,44 +126,59 @@ export const GameFT = <A,>(
           alg.useState<Color>(
           DEFAULT_COLOR,
           ([pickedColor, setPickedColor]) => {
-            const restartGame = (): void => {
-              setGuessedColor(randomColor())
-              setPickedColor(DEFAULT_COLOR)
-              setGameState({ match: alg => alg.playing })
-              setGameId((id: number) => (id + 1) % 2)
-            }
             if (!guessedColor) {
               return alg.empty
             } else {
-              const state: GameState = {
+              return cont({
                 Difficulty: State(difficulty, setDifficulty),
                 GuessedColor: State(guessedColor, setGuessedColor),
                 PickedColor: State(pickedColor, setPickedColor),
                 GameState: State(gameState, setGameState),
-              }
-              return alg.GameRound(
-              gameId,
-                state,
-              () => {
-                restartGame();
-                // just for fun, let's print the schema
-                console.log(GameRoundSchema({state,restartGame}));
-              },
-            )
+              },gameId,setGameId)
             }
-          }
-          )
-          )
-          )
-          )
+          }))))))
+
+export const GameFT = <A,>(
+  alg: {
+    GameRound: (
+      key: number,
+      state: GameRoundState,
+      restartGame: () => void,
+    ) => A,
+    makeGameState: (cont: (
+      state: GameState,
+      key: number,
+      setKey: (upd: (n: number) => number) => void
+    ) => A) => A,
+  },
+) => 
+  alg.makeGameState(
+    (state,key,setKey) => {
+      const restartGame = (): void => {
+        state.GuessedColor.update(() => randomColor())
+        state.PickedColor.update(() => DEFAULT_COLOR)
+        state.GameState.update(() => ({ match: alg => alg.playing }))
+        setKey((id: number) => (id + 1) % 2)
+      }
+      return alg.GameRound(
+        key,
+          state,
+        () => {
+          restartGame();
+          // just for fun, let's print the schema
+          console.log(GameRoundSchema({state,restartGame}));
+        },
       )
+    }
   )
 
 export const Game: FC = () =>
-  GameFT({
-    ...gameRoundElements,
-    ...Algebras.useEffectElement,
-    ...Algebras.useStateElement,
+  GameFT<ReactElement>({
+    makeGameState: cont => makeGameState({
+      ...Algebras.useEffectElement,
+      ...Algebras.useStateElement,
+      ...Algebras.emptyElement,
+    },cont),
     GameRound: (key,state,restart) =>
       <GameRoundComponent key={key} state={state} restartGame={restart}/>
   })
@@ -166,7 +187,7 @@ type GameRoundProps = {
   restartGame: () => void,
   state: GameRoundState
 }
-type GameRound<A> = Div<A> & Empty<A> & Str<A> & Fold<A> & Sliders<A> & Buttons<A> & UseDebounce<A> & Input<A>
+export type GameRound<A> = Div<A> & Empty<A> & Str<A> & Fold<A> & Sliders<A> & Buttons<A> & UseDebounce<A> & Input<A>
 type GameRoundState = DifficultyState
   & GameStateState
   & PickedColorState
@@ -525,17 +546,17 @@ const gameRoundElements: GameRound<ReactElement> = {
 const GameRoundComponent: FC<GameRoundProps> = ({state,restartGame}) =>
   GameRound(restartGame,state)(gameRoundElements)
 
-const capitalized = <A,Alg>(
-  items: (alg: Alg & Str<A>) => A,
-  alg: Alg & Str<A>,
-): A => items({...alg, str: text => alg.str(text.toUpperCase())})
+// const capitalized = <A,Alg>(
+//   items: (alg: Alg & Str<A>) => A,
+//   alg: Alg & Str<A>,
+// ): A => items({...alg, str: text => alg.str(text.toUpperCase())})
 
-const capitalizedGameRound = ({state,restartGame}: GameRoundProps) =>
-  <A,>(alg: GameRound<A>) => capitalized(GameRound(restartGame,state), alg)
+// const capitalizedGameRound = ({state,restartGame}: GameRoundProps) =>
+//   <A,>(alg: GameRound<A>) => capitalized(GameRound(restartGame,state), alg)
 
 // capitalized GameRound
-const CapGameRoundComponent: FC<GameRoundProps> = (props) =>
-  capitalizedGameRound(props)(gameRoundElements)
+// const CapGameRoundComponent: FC<GameRoundProps> = (props) =>
+//   capitalizedGameRound(props)(gameRoundElements)
 
 // GameRound schema
 const GameRoundSchema = ({state,restartGame}: GameRoundProps): string =>

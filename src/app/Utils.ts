@@ -76,6 +76,12 @@ export type Lens<S, T, A, B> = {
 export type SimpleLens<S, A> = Lens<S, S, A, A>
 
 export namespace Lens {
+  export const compose =
+    <S,A,T = S,B = A>(g: Lens<S,T,A,B>) =>
+    <A1,B1 = A1>(f: Lens<A,B,A1,B1>): Lens<S,T,A1,B1> => ({
+      get: s => f.get(g.get(s)),
+      modify: (s,b1) => g.modify(s,f.modify(g.get(s),b1)) 
+    })
   export const lens = <S, T, A, B>(
     get: (s: S) => A,
     modify: (s: S, a: B) => T,

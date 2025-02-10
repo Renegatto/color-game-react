@@ -1,8 +1,8 @@
 import { ColorPickerFT } from "@/app/components/ColorPicker.tsx";
 import { DEFAULT_COLOR, GameFT, GameRoundFT, GameState, OngoingGameState, Outcome } from "../src/app/Game.tsx"
 import { expect, test} from "@jest/globals"
-import { Some } from "@/app/Utils.ts";
-import { Div, Empty, Fold, Str } from "@/app/basics.tsx";
+import { None, Some } from "@/app/Utils.ts";
+import { Basics, Div, Empty, Fold, Input, Str, UseDebounce } from "@/app/basics.tsx";
 
 const mockGameState = {
   Difficulty: { current: 30, update: () => {} },
@@ -15,6 +15,18 @@ namespace Noop {
   export const empty: Empty<void> = { empty: undefined };
   export const str: Str<void> = { str: () => {} };
   export const fold: Fold<void> = { fold: () => {} };
+  export const useDebounce: UseDebounce<void> = {
+    useDebounce: (_,cont) => cont(() => {})
+  }
+  export const input: Input<void> = { input: () => {} }
+  export const basics: Basics<void> = {
+    ...div,
+    ...str,
+    ...empty,
+    ...fold,
+    ...useDebounce,
+    ...input,
+  }
 }
 test('onPicked should switch game state to "ended"', () => {
   const currentState = { value: OngoingGameState.playing }; 
@@ -29,8 +41,7 @@ test('onPicked should switch game state to "ended"', () => {
   GameFT({
     GameRound: (_,state,restart) => {
       GameRoundFT(restart,state)({
-        ...Noop.empty,
-        ...Noop.div,
+        ...Noop.basics,
         RestartBtn: () => {},
         ColorPicker: () => {},
         ColoredBackground: () => {},
@@ -64,13 +75,38 @@ test("Color picker disables it's sliders when disabled", (): void => {
     Some({actual: DEFAULT_COLOR, outcome: Outcome.victory}),
     {PickedColor: {current: DEFAULT_COLOR, update: () => {}}},
   )({
-    ...Noop.div,
-    ...Noop.str,
-    ...Noop.empty,
-    ...Noop.fold,
+    ...Noop.basics,
     ColorSlider: disabled => {
       expect(disabled).toStrictEqual(true)
     },
     GhostSlider: () => {},
   })
+})
+test("Ghost sliders are only shown when the picker is disabled", (): void => {
+  var shownOnDisabled = false;
+  var shownOnEnabled = false;
+  const disabledWith = {actual: DEFAULT_COLOR, outcome: Outcome.victory}
+  const state = {PickedColor: {current: DEFAULT_COLOR, update: () => {}}}
+  ColorPickerFT(Some(disabledWith),state)({
+    ...Noop.basics,
+    ColorSlider: () => {},
+    GhostSlider: value => {
+      value.match({
+        some: () => {shownOnDisabled = true;},
+        none: undefined
+      })
+    },
+  });
+  ColorPickerFT(None(),state)({
+    ...Noop.basics,
+    ColorSlider: () => {},
+    GhostSlider: value => {
+      value.match({
+        some: () => {shownOnEnabled = true;},
+        none: undefined,
+      })
+    },
+  });
+  expect(shownOnDisabled).toStrictEqual(true);
+  expect(shownOnEnabled).toStrictEqual(false);
 })

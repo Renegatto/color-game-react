@@ -7,18 +7,6 @@ const mockGameState = {
   PickedColor: { current: {r:0,g:0,b:0}, update: () => {} },
   GameState: { current: OngoingGameState.playing, update: () => {} }
 }
-const noopAlg: GameRound<void> = {
-  pickColorBtn: _ => {}, // this case
-  div: _ => childs => childs.forEach(_ => {}),
-  empty: (() => {})(),
-  str: _ => {},
-  fold: xs => xs.forEach(_ => {}),
-  ghostSlider: _ => {},
-  colorSlider: _ => {},
-  restartBtn: _ => {},
-  useDebounce: (_,cont) => cont(delayed => delayed()),
-  input: _ => {},
-}
 
 test('onPicked should switch game state to "ended"', () => {
   const currentState = { value: OngoingGameState.playing }; 
@@ -33,8 +21,15 @@ test('onPicked should switch game state to "ended"', () => {
   GameFT({
     GameRound: (_,state,restart) => {
       GameRound(restart,state)({
-        ...noopAlg,
-        pickColorBtn: onPicked => {handler.value = onPicked}, // this case
+        empty: undefined,
+        div: () => () => {},
+        RestartBtn: () => {},
+        ColorPicker: () => {},
+        ColoredBackground: () => {},
+        DifficultyPicker: () => {},
+        ColorsComparison: () => {},
+        InfoBar: () => {},
+        PickColorBtn: onPicked => {handler.value = onPicked}, // this case
       });
     },
     makeGameState: cont => cont(state,2,() => {}),

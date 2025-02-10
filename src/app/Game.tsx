@@ -1,5 +1,5 @@
 "use client"
-import { createElement, DetailedHTMLProps, FC, HTMLAttributes, InputHTMLAttributes, ReactElement, useEffect, useState } from "react";
+import { createElement, DetailedHTMLProps, FC, HTMLAttributes, InputHTMLAttributes, ReactElement, ReactNode, useEffect, useState } from "react";
 import { useDebounce } from "./Hooks";
 import { Color, Option, colorToCode, Current, eachIsClose, State, randomColor, Lens, SimpleLens, Some, None } from "./Utils";
 
@@ -75,14 +75,6 @@ export type UseDebounce<in out A> = {
 }
 export type Input<in out A> = {
   input: (attrs: InputHTMLAttributes<HTMLInputElement>) => A
-}
-export type Buttons<in out A> = {
-  restartBtn: (restartGame: () => void) => A,
-  pickColorBtn: (onPickColor: () => void) => A,
-}
-export type Sliders<in out A> = {
-  ghostSlider: (value: Option<number>) => A,
-  colorSlider: (disabled: boolean, onChange: (m: number) => void, child: A) => A,
 }
 
 export type UseState<in out A> = {
@@ -187,7 +179,7 @@ type GameRoundProps = {
   restartGame: () => void,
   state: GameRoundState
 }
-export type GameRound<A> = Div<A> & Empty<A> & Str<A> & Fold<A> & Sliders<A> & Buttons<A> & UseDebounce<A> & Input<A>
+
 type GameRoundState = DifficultyState
   & GameStateState
   & PickedColorState
@@ -202,7 +194,16 @@ export const GameRound = (
     GuessedColor: { current: actualColor },
   }: GameRoundState
 ) =>
-<A,>(alg: GameRound<A>): A => {
+<A,>(
+  alg: Div<A> & Empty<A>
+    & PickColorBtn<A>
+    & RestartBtn<A>
+    & ColorPicker<A>
+    & ColoredBackground<A>
+    & DifficultyPicker<A>
+    & ColorsComparison<A>
+    & InfoBar<A>
+  ): A => {
   const onPickColor = (): void => {
     const [matches, maxDifference] = eachIsClose(
       Difficulty.current,
@@ -223,30 +224,32 @@ export const GameRound = (
     ended: () => false,
   })
   return alg.div({className: "game-round"})([
-    ColorPicker(
+    alg.ColorPicker(
       GameState.current.match({
         ended: outcome => Some({ actual: actualColor, outcome }),
         playing: None(),
       }),
       { PickedColor },
-    )(alg),
-    InfoBar({ Difficulty, GameState })(alg),
+    ),
+    alg.InfoBar({ Difficulty, GameState }),
     alg.div({className: "colored-background"})([
       stillPlaying
-        ? ColoredBackground(actualColor,alg.empty)(alg)
-        : ColorsComparison(actualColor,PickedColor.current)(alg)
+        ? alg.ColoredBackground(actualColor,alg.empty)
+        : alg.ColorsComparison(actualColor,PickedColor.current)
     ]),
     alg.div({className: "game bottom-block"})([
       stillPlaying
-        ? alg.pickColorBtn(onPickColor)
+        ? alg.PickColorBtn(onPickColor)
         : alg.div({className: "game bottom-block reset-options"})([
-            alg.restartBtn(restartGame),
-            DifficultyPicker({Difficulty})(alg),
+            alg.RestartBtn(restartGame),
+            alg.DifficultyPicker({Difficulty}),
           ])
     ]),
   ]);
 }
-
+type PickColorBtn<A> = {
+  PickColorBtn: (onPickColor: () => void) => A,
+}
 const PickColorBtn: FC<{ onPickColor: () => void }> = ({onPickColor}) =>
   <button
     className="game bottom-block submit-btn"
@@ -256,6 +259,9 @@ const PickColorBtn: FC<{ onPickColor: () => void }> = ({onPickColor}) =>
     Pick
   </button>
 
+type RestartBtn<A> = {
+  RestartBtn: (restartGame: () => void) => A,
+}
 const RestartBtn: FC<{ restartGame: () => void }> = ({restartGame}) =>
   <button
     className="game bottom-block reset-options reset-game-btn"
@@ -265,6 +271,11 @@ const RestartBtn: FC<{ restartGame: () => void }> = ({restartGame}) =>
     Restart
   </button>
 
+type InfoBar<A> = {
+  InfoBar: (
+    state: Current<DifficultyState> & Current<GameStateState>
+  ) => A,
+}
 export const InfoBar =
   ({ Difficulty, GameState } :
     Current<DifficultyState> & Current<GameStateState>
@@ -293,21 +304,29 @@ export const InfoBar =
     ]),
   ])
 
+type ColorsComparison<A> = {
+  ColorsComparison: (actual: Color, picked: Color) => A,
+}
 export const ColorsComparison =
   (actual: Color, picked: Color) =>
-  <A,>(alg: Div<A> & Str<A> & Fold<A>): A =>
+  <A,>(
+    alg: Div<A> & Str<A> & Fold<A> & ColoredBackground<A>,
+  ): A =>
   alg.fold([
     alg.div({className: "colored-background comparison"})([
-      ColoredBackground(actual,alg.str(`Actual color ${colorToCode(actual)}`))(alg),
+      alg.ColoredBackground(actual,alg.str(`Actual color ${colorToCode(actual)}`)),
     ]),
     alg.div({className: "colored-background comparison"})([
-      ColoredBackground(
+      alg.ColoredBackground(
         picked,
         alg.str(`Your color ${colorToCode(picked)}`),
-      )(alg),
+      ),
     ]),
   ])
 
+type ColoredBackground<A> = {
+  ColoredBackground: (color: Color, child: A) => A,
+}
 export const ColoredBackground =
   <A,>(color: Color, child: A) =>
   (alg: Div<A>): A =>
@@ -321,11 +340,17 @@ const withR: SimpleLens<Color, number> = Lens.property("r")
 const withG: SimpleLens<Color, number> = Lens.property("g")
 const withB: SimpleLens<Color, number> = Lens.property("b")
 
+type ColorPicker<A> = {
+  ColorPicker: (
+    disabledWith: Option<{ actual: Color, outcome: Outcome }>,
+    { PickedColor }: PickedColorState,
+  ) => A,
+}
 const ColorPicker = (
     disabledWith: Option<{ actual: Color, outcome: Outcome }>,
     { PickedColor }: PickedColorState
   ) =>
-  <A,>(alg: Div<A> & Str<A> & Empty<A> & Fold<A> & Sliders<A>): A => {
+  <A,>(alg: Div<A> & Str<A> & Empty<A> & Fold<A> & ColorSlider<A> & GhostSlider<A>): A => {
   const currentColor: Color = PickedColor.current
 
   const disabled = disabledWith.match({
@@ -333,7 +358,7 @@ const ColorPicker = (
     none: false
   })
   const drawGhostSlider = (component: SimpleLens<Color, number>): A =>
-    alg.ghostSlider(disabledWith.match({
+    alg.GhostSlider(disabledWith.match({
       none: None(),
       some: ({ actual }) => Some(component.get(actual)),
     }))
@@ -341,7 +366,7 @@ const ColorPicker = (
     component: SimpleLens<Color, number>,
     colorName: string,
   ): A =>
-    alg.colorSlider(
+    alg.ColorSlider(
       disabled,
       c =>
         PickedColor.update(() =>
@@ -379,6 +404,9 @@ const ColorPicker = (
   ])
 }
 
+type GhostSlider<A> = {
+  GhostSlider: (value: Option<number>) => A,
+}
 const GhostSlider: FC<{ value: Option<number> }> = ({ value }) =>
   <>
     <div className="slidecontainer ghost">
@@ -405,6 +433,13 @@ type ColorSliderProps = {
   child: ReactElement,
 }
 
+type ColorSlider<A> = {
+  ColorSlider: (
+    disabled: boolean,
+    onChange: (m: number) => void,
+    child: A,
+  ) => A,
+}
 const ColorSlider: FC<ColorSliderProps> = ({ disabled, child, onChange }) => {
   const debounce = useDebounce(10)
   const change = (val: number): void => {
@@ -431,6 +466,9 @@ const ColorSlider: FC<ColorSliderProps> = ({ disabled, child, onChange }) => {
   </>
 }
 
+type DifficultyPicker<A> = {
+  DifficultyPicker: (state: DifficultyState) => A,
+}
 const DifficultyPicker =
  ({ Difficulty } : DifficultyState) =>
   <A,>(alg: Div<A> & Str<A> & UseDebounce<A> & Input<A>): A =>
@@ -476,13 +514,11 @@ namespace Algebras {
       <></>,
       ),
   }
-  export const buttonsElements: Buttons<ReactElement> = {
-    restartBtn: restartGame => <RestartBtn restartGame={restartGame}/>,
-    pickColorBtn: onPickColor => <PickColorBtn onPickColor={onPickColor}/>,
+  export const ghostSliderElements: GhostSlider<ReactElement> = {
+    GhostSlider: value => <GhostSlider value={value}/>,
   }
-  export const sliderElements: Sliders<ReactElement> = {
-    ghostSlider: value => <GhostSlider value={value}/>,
-    colorSlider: (disabled, onChange, child) =>
+  export const colorSliderElements: ColorSlider<ReactElement> = {
+    ColorSlider: (disabled, onChange, child) =>
       <ColorSlider disabled={disabled} onChange={onChange} child={child}/>,
   }
   export const useDebounceElement: UseDebounce<ReactElement> = {
@@ -508,7 +544,14 @@ namespace Algebras {
   }
   const foldText = (xs: string[]): string =>
     xs.reduce((a,b) => `${a}${b}`,'')
-  export const stringSchema: GameRound<string> = {
+  export type Basics<A> = 
+    & Div<A>
+    & Str<A>
+    & Empty<A>
+    & Fold<A>
+    & UseDebounce<A>
+    & Input<A>
+  export const stringSchema: Basics<string> = {
     div: props => childs =>
       `[div props='${JSON.stringify(props)}']${
         foldText(childs)
@@ -516,35 +559,90 @@ namespace Algebras {
     str: text => `'${text}'`,
     empty: '',
     fold: foldText,
-    restartBtn: () => '[RestartBtn]',
+   // restartBtn: () => '[RestartBtn]',
     useDebounce: (ms, cont) =>
       `[useDebounce ${ms}]${ cont(_ => {}) }[end useDebounce]`,
-    pickColorBtn: () => '[PickColorBtn]',
-    ghostSlider: (disabledWith: Option<number>) =>
-      disabledWith.match({
-        some: n => `[GhostSlider n=${n}]`,
-        none: '[GhostSlider]'
-      }),
+   // pickColorBtn: () => '[PickColorBtn]',
+    // ghostSlider: (disabledWith: Option<number>) =>
+    //   disabledWith.match({
+    //     some: n => `[GhostSlider n=${n}]`,
+    //     none: '[GhostSlider]'
+    //   }),
     input: props => `[input props=${JSON.stringify(props)}]`,
-    colorSlider: (disabled, _, child) =>
-      `[ColorSlider ${disabled ? 'disabled' : ''}]${child}[end ColorSlider]`,
+    // colorSlider: (disabled, _, child) =>
+    //   `[ColorSlider ${disabled ? 'disabled' : ''}]${child}[end ColorSlider]`,
   }
 }
 
-const gameRoundElements: GameRound<ReactElement> = {
+const gameRoundElements: Algebras.Basics<ReactElement> = {
   ...Algebras.divElement,
   ...Algebras.strElement,
   ...Algebras.emptyElement,
   ...Algebras.foldElements,
   ...Algebras.inputElement,
   ...Algebras.useDebounceElement,
-  ...Algebras.buttonsElements,
-  ...Algebras.sliderElements,
+}
+
+const difficultyPickerElement: DifficultyPicker<ReactElement> = {
+  DifficultyPicker: state => <DifficultyPickerComponent state={state}/>
+}
+const DifficultyPickerComponent: FC<{state: DifficultyState}> =
+  ({state}) => DifficultyPicker(state)(gameRoundElements)
+
+const colorPickerElement: ColorPicker<ReactElement> = {
+  ColorPicker: (disabledWith,state) =>
+    <ColorPickerComponent disabledWith={disabledWith} state={state}/>
+}
+const ColorPickerComponent: FC<{
+  disabledWith: Option<{
+    actual: Color;
+    outcome: Outcome;
+  }>,
+  state: PickedColorState,
+}> = ({disabledWith,state}) =>
+  ColorPicker(disabledWith,state)({
+    ...gameRoundElements,
+    ...Algebras.ghostSliderElements,
+    ...Algebras.colorSliderElements,
+  })
+
+const colorsComparisonElement: ColorsComparison<ReactElement> = {
+  ColorsComparison: (actual,picked) =>
+    <ColorsComparisonComponent actual={actual} picked={picked}/>
+}
+const ColorsComparisonComponent: FC<{actual: Color,picked: Color}> =
+  ({actual,picked}) => ColorsComparison(actual,picked)({
+    ...gameRoundElements,
+    ColoredBackground: (color,child) =>
+      <ColoredBackgroundComponent color={color} child={child}/>,
+  })
+
+const InfoBarComponent: FC<{state: Current<DifficultyState> & Current<GameStateState>}> =
+  ({state}) => InfoBar(state)(gameRoundElements)
+const infoBarElement: InfoBar<ReactElement> = {
+  InfoBar: state => <InfoBarComponent state={state}/>
+}
+
+
+const ColoredBackgroundComponent: FC<{color: Color,child: ReactElement}> =
+  ({color,child}) => ColoredBackground(color,child)(gameRoundElements)
+const coloredBackgroundElement: ColoredBackground<ReactElement> = {
+  ColoredBackground: (color,child) =>
+  <ColoredBackgroundComponent color={color} child={child}/>
 }
 
 // normal GameRound
 const GameRoundComponent: FC<GameRoundProps> = ({state,restartGame}) =>
-  GameRound(restartGame,state)(gameRoundElements)
+  GameRound(restartGame,state)({
+    ...gameRoundElements,
+    RestartBtn: restartGame => <RestartBtn restartGame={restartGame}/>,
+    PickColorBtn: onPickColor => <PickColorBtn onPickColor={onPickColor}/>,
+    ...colorPickerElement,
+    ...difficultyPickerElement,
+    ...coloredBackgroundElement,
+    ...colorsComparisonElement,
+    ...infoBarElement,
+  })
 
 // const capitalized = <A,Alg>(
 //   items: (alg: Alg & Str<A>) => A,
@@ -560,4 +658,22 @@ const GameRoundComponent: FC<GameRoundProps> = ({state,restartGame}) =>
 
 // GameRound schema
 const GameRoundSchema = ({state,restartGame}: GameRoundProps): string =>
-  GameRound(restartGame,state)(Algebras.stringSchema)
+  GameRound(restartGame,state)({
+    ...Algebras.stringSchema,
+    PickColorBtn: () => "[PickColorBtn]",
+    RestartBtn: () => "[RestartBtn]",
+    ColorPicker: () => "[ColorPicker]",
+    ColoredBackground: (color,child) =>
+      `[ColoredBackground color=${colorToCode(color)}]${child}[end ColoredBackground]`,
+    DifficultyPicker: ({Difficulty: {current}}) =>
+      `[DifficultyPicker current=${current}]`,
+    ColorsComparison: (actual,picked) =>
+      `[ColorsComparison actual=${colorToCode(actual)} picked=${colorToCode(picked)}]`,
+    InfoBar: ({Difficulty: {current: currentDifficulty}, GameState: {current: currentGameState}}) =>
+      `[InfoBar difficulty=${currentDifficulty} gameState=${currentGameState.match({
+        playing: "Playing",
+        ended: (outcome,difference,withDifficulty) =>
+        `'${outcome.match({defeat: 'Lost',victory: 'Won'})}\
+        \ with difficulty ${withDifficulty} and difference ${difference}'`
+      })}]`,
+  })

@@ -28,7 +28,7 @@ export const ColorPicker: FC<{
     ...Elements.ghostSlider,
     ...Elements.colorSlider,
   })
-const ColorPickerFT = (
+export const ColorPickerFT = (
     disabledWith: Option<{ actual: Color, outcome: Outcome }>,
     { PickedColor }: PickedColorState
   ) =>

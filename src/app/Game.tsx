@@ -5,13 +5,13 @@ import { ColorPicker } from "./components/ColorPicker";
 import { Div, Empty, Fold, Input, Str, UseDebounce, UseEffect, UseState } from "./basics";
 import * as Basics from "./basics"
 
-const DEFAULT_COLOR: Color = { r: 0, g: 0, b: 0 }
+export const DEFAULT_COLOR: Color = { r: 0, g: 0, b: 0 }
 const DEFAULT_DIFFICULTY = 10
 
 // Outcome datatype
 export type Outcome = { match: <C>(alg: OutcomeAlg<C>) => C }
 // its constructors
-const Outcome: OutcomeAlg<Outcome> = {
+export const Outcome: OutcomeAlg<Outcome> = {
   victory: { match: alg => alg.victory },
   defeat: { match: alg => alg.defeat },
 }

@@ -1,4 +1,4 @@
-import { GameFT, GameRound, GameState, OngoingGameState } from "../src/app/Game.tsx"
+import { GameFT, GameRoundFT, GameState, OngoingGameState } from "../src/app/Game.tsx"
 import { test} from "@jest/globals"
 
 const mockGameState = {
@@ -20,7 +20,7 @@ test('onPicked should switch game state to "ended"', () => {
   const handler: { value?: () => void } = {};
   GameFT({
     GameRound: (_,state,restart) => {
-      GameRound(restart,state)({
+      GameRoundFT(restart,state)({
         empty: undefined,
         div: () => () => {},
         RestartBtn: () => {},

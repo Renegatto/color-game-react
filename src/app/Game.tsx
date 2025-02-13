@@ -4,6 +4,7 @@ import { Color, colorToCode, Current, eachIsClose, State, randomColor, Some, Non
 import { ColorPicker } from "./components/ColorPicker";
 import { Div, Empty, Fold, Input, Str, UseDebounce, UseEffect, UseState } from "./basics";
 import * as Basics from "./basics"
+import { Exhibit, usePeek } from "./Hooks";
 
 export const DEFAULT_COLOR: Color = { r: 0, g: 0, b: 0 }
 const DEFAULT_DIFFICULTY = 10
@@ -30,13 +31,14 @@ type OngoingGameStateAlg<in out A> = {
   ended(
     failed: Outcome,
     difference: number,
+    withPickedColor: Color,
     withDifficulty: number,
   ): A,
 }
 export const OngoingGameState: OngoingGameStateAlg<OngoingGameState> = {
   playing: {match: alg => alg.playing},
-  ended: (failed,difference,difficulty) => ({
-    match: alg => alg.ended(failed,difference,difficulty)
+  ended: (failed,difference,withPickedColor,difficulty) => ({
+    match: alg => alg.ended(failed,difference,withPickedColor,difficulty)
   })
 }
 
@@ -47,7 +49,7 @@ const displayDifficulty = (difficulty: number): string =>
 
 export type DifficultyState = { Difficulty: State<number> }
 export type GuessedColorState = { GuessedColor: State<Color> }
-export type PickedColorState = { PickedColor: State<Color> }
+export type PickedColorState = { PickedColor: ColorState }
 export type GameStateState = { GameState: State<OngoingGameState> }
 export type GameState =
   DifficultyState
@@ -60,8 +62,12 @@ export type GameState =
 // Components
 
 export const makeGameState = <A,>(
-  alg: UseState<A> & UseEffect<A> & Empty<A>,
-  cont: (state: GameState, key: number, setKey: (upd: (n: number) => number) => void) => A,
+  alg: UseState<A> & UseEffect<A> & Empty<A> & UseColor<A>,
+  cont: (
+    state: GameState,
+    key: number,
+    setKey: (upd: (n: number) => number) => void,
+  ) => A,
 ): A =>
   alg.useState<Color | undefined>(
     undefined,
@@ -81,16 +87,16 @@ export const makeGameState = <A,>(
           alg.useState<OngoingGameState>(
           () => ({ match: alg => alg.playing }),
           ([gameState, setGameState]) =>
-          alg.useState<Color>(
+          alg.useColor(
           DEFAULT_COLOR,
-          ([pickedColor, setPickedColor]) => {
+          colorState => {
             if (!guessedColor) {
               return alg.empty
             } else {
               return cont({
                 Difficulty: State(difficulty, setDifficulty),
                 GuessedColor: State(guessedColor, setGuessedColor),
-                PickedColor: State(pickedColor, setPickedColor),
+                PickedColor: colorState,
                 GameState: State(gameState, setGameState),
               },gameId,setGameId)
             }
@@ -102,6 +108,7 @@ export const Game: FC = () =>
       ...Basics.Elements.useEffect,
       ...Basics.Elements.useState,
       ...Basics.Elements.empty,
+      useColor: (initial,cont) => cont(useColor(initial)),
     },cont),
     GameRound: (key,state,restart) =>
       <GameRound key={key} state={state} restartGame={restart}/>
@@ -116,7 +123,7 @@ export const GameFT = <A,>(
     makeGameState: (cont: (
       state: GameState,
       key: number,
-      setKey: (upd: (n: number) => number) => void
+      setKey: (upd: (n: number) => number) => void,
     ) => A) => A,
   },
 ) => 
@@ -124,13 +131,12 @@ export const GameFT = <A,>(
     (state,key,setKey) => {
       const restartGame = (): void => {
         state.GuessedColor.update(() => randomColor())
-        state.PickedColor.update(() => DEFAULT_COLOR)
         state.GameState.update(() => ({ match: alg => alg.playing }))
         setKey((id: number) => (id + 1) % 2)
       }
       return alg.GameRound(
         key,
-          state,
+        state,
         () => {
           restartGame();
           // just for fun, let's print the schema
@@ -184,13 +190,14 @@ export const GameRoundFT = (
   const onPickColor = (): void => {
     const [matches, maxDifference] = eachIsClose(
       Difficulty.current,
-      PickedColor.current,
+      PickedColor.currentColor(),
       actualColor
     )
     GameState.update(() => ({
       match: alg => alg.ended(
         matches ? Outcome.victory : Outcome.defeat,
         maxDifference,
+        PickedColor.currentColor(),
         Difficulty.current,
       )
     })
@@ -206,13 +213,15 @@ export const GameRoundFT = (
         ended: outcome => Some({ actual: actualColor, outcome }),
         playing: None(),
       }),
-      { PickedColor },
+      {PickedColor},
     ),
     alg.InfoBar({ Difficulty, GameState }),
     alg.div({className: "colored-background"})([
-      stillPlaying
-        ? alg.ColoredBackground(actualColor,alg.empty)
-        : alg.ColorsComparison(actualColor,PickedColor.current)
+      GameState.current.match({
+        playing: alg.ColoredBackground(actualColor,alg.empty),
+        ended: (_0,_1,pickedColor) =>
+          alg.ColorsComparison(actualColor,pickedColor),
+      })
     ]),
     alg.div({className: "game bottom-block"})([
       stillPlaying
@@ -284,7 +293,7 @@ export const InfoBarFT =
         displayDifficulty(GameState.current.match({
           playing: Difficulty.current,
           // we only display difficulty AT THE MOMENT game was over
-          ended: (_out, _diff, difficulty) => difficulty,
+          ended: (_out, _diff, _color, difficulty) => difficulty,
         }))
       }`),
     ]),
@@ -425,3 +434,27 @@ const GameRoundSchema = ({state,restartGame}: GameRoundProps): string =>
         \ with difficulty ${withDifficulty} and difference ${difference}'`
       })}]`,
   })
+
+// game-specific hook
+
+type UseColor<A> = {
+  useColor: (color: Color, cont: (s: ColorState) => A) => A,
+}
+export type ColorState = {
+  currentColor: () => Color,
+  exhibitR: Exhibit<number>,
+  exhibitG: Exhibit<number>,
+  exhibitB: Exhibit<number>,
+}
+
+const useColor = (initialColor: Color): ColorState => {
+  const r = usePeek(initialColor.r)
+  const g = usePeek(initialColor.g)
+  const b = usePeek(initialColor.b)
+  return {
+    exhibitR: r.exhibit,
+    exhibitG: g.exhibit,
+    exhibitB: b.exhibit,
+    currentColor: () => ({r: r.peek(), g: g.peek(), b: b.peek()}),
+  }
+}

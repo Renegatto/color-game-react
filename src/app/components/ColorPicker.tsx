@@ -1,19 +1,26 @@
 "use client"
 import { FC, ReactElement } from "react";
-import { useDebounce } from "../Hooks";
-import { Color, Option, Lens, SimpleLens, Some, None } from "../Utils";
+import { Exhibit, useDebounce, useExhibitedState } from "../Hooks";
+import { Color, Option, Lens, Some, None } from "../Utils";
 import { Outcome, PickedColorState } from "../Game";
 import { Div, Empty, Fold, Str } from "../basics";
 import * as Basics from "../basics"
 
-const withR: SimpleLens<Color, number> = Lens.property("r")
-const withG: SimpleLens<Color, number> = Lens.property("g")
-const withB: SimpleLens<Color, number> = Lens.property("b")
+type RGB<A> = { r: A, g: A, b: A }
+type RGBComponentLens<C extends string> = <A,B>() =>
+  Lens<RGB<A>, Omit<RGB<A>, C> & { [key in C]: B; }, A, B>
+
+const withR: RGBComponentLens<'r'> = () =>
+  Lens.property("r")
+const withG: RGBComponentLens<'g'> = () =>
+  Lens.property("g")
+const withB: RGBComponentLens<'b'> = () =>
+  Lens.property("b")
 
 export type ColorPicker<A> = {
   ColorPicker: (
     disabledWith: Option<{ actual: Color, outcome: Outcome }>,
-    { PickedColor }: PickedColorState,
+    state: PickedColorState,
   ) => A,
 }
 export const ColorPicker: FC<{
@@ -30,35 +37,35 @@ export const ColorPicker: FC<{
   })
 export const ColorPickerFT = (
     disabledWith: Option<{ actual: Color, outcome: Outcome }>,
-    { PickedColor }: PickedColorState
+    {PickedColor}: PickedColorState 
   ) =>
   <A,>(alg: Div<A> & Str<A> & Empty<A> & Fold<A> & ColorSlider<A> & GhostSlider<A>): A => {
-  const currentColor: Color = PickedColor.current
 
   const disabled = disabledWith.match({
     some: () => true,
     none: false
   })
-  const drawGhostSlider = (component: SimpleLens<Color, number>): A =>
+  const drawGhostSlider = (component: RGBComponentLens<'r' | 'g' | 'b'>): A =>
     alg.GhostSlider(disabledWith.match({
       none: None(),
-      some: ({ actual }) => Some(component.get(actual)),
+      some: ({ actual }) => Some(component<number,number>().get(actual)),
     }))
   const drawColorSlider = (
-    component: SimpleLens<Color, number>,
+    component: RGBComponentLens<'r' | 'g' | 'b'>,
     colorName: string,
   ): A =>
     alg.ColorSlider(
       disabled,
-      c =>
-        PickedColor.update(() =>
-          component.modify(currentColor, c)
-        ),
-      alg.str(`${colorName}: ${component.get(currentColor)}`),
+      component<Exhibit<number>,Exhibit<number>>().get({
+        r: PickedColor.exhibitR,
+        g: PickedColor.exhibitG,
+        b: PickedColor.exhibitB,
+      }),
+      n => alg.str(`${colorName}: ${n}`),
     );
 
   const drawSlidersPair = (
-    component: SimpleLens<Color, number>,
+    component: RGBComponentLens<'r' | 'g' | 'b'>,
     colorName: string,
   ): A =>
     alg.fold([
@@ -77,7 +84,7 @@ export const ColorPickerFT = (
     })
   const overlayOnDisabled = (subclass: string) =>
     alg.div({className: `color-picker ${subclass}`})([])
-
+  console.log("color picker update")
   return alg.div({className: "color-picker"})([
     drawSlidersPair(withR, "R"),
     drawSlidersPair(withG, "G"),
@@ -116,35 +123,33 @@ const GhostSlider: FC<{ value: Option<number> }> = ({ value }) =>
 type ColorSlider<A> = {
   ColorSlider: (
     disabled: boolean,
-    onChange: (m: number) => void,
-    child: A,
+    exhibit: Exhibit<number>,
+    child: (current: number) => A,
   ) => A,
 }
 
 type ColorSliderProps = {
   disabled: boolean,
-  onChange: (val: number) => void,
-  child: ReactElement,
+  child: (current: number) => ReactElement,
+  exhibit: Exhibit<number>,
 }
 
-const ColorSlider: FC<ColorSliderProps> = ({ disabled, child, onChange }) => {
+const ColorSlider: FC<ColorSliderProps> = ({ disabled, exhibit, child }) => {
+  const [component,setComponent] = useExhibitedState(125, exhibit)
   const debounce = useDebounce(10)
-  const change = (val: number): void => {
-    onChange(val)
-  }
   return <>
     <div className="slidecontainer normal">
-      {child}
+      {child(component)}
       <input
         type="range"
         disabled={disabled}
         min="0"
         max="255"
-        defaultValue={0}
+        defaultValue={component}
         onChange={
           e => {
             const newValue = e.currentTarget.valueAsNumber
-            debounce(() => change(newValue))
+            debounce(() => setComponent(newValue))
           }
         }
         className={`slider ${disabled ? "disabled" : "normal"}`}
@@ -157,7 +162,7 @@ namespace Elements {
     GhostSlider: value => <GhostSlider value={value}/>,
   }
   export const colorSlider: ColorSlider<ReactElement> = {
-    ColorSlider: (disabled, onChange, child) =>
-      <ColorSlider disabled={disabled} onChange={onChange} child={child}/>,
+    ColorSlider: (disabled, exhibit, child) =>
+      <ColorSlider disabled={disabled} exhibit={exhibit} child={child}/>,
   }
 }

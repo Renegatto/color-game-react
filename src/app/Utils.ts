@@ -68,12 +68,12 @@ export const None = <T>(): Option<T> =>
   A - inner before
   B - inner after
 */
-export type Lens<S, T, A, B> = {
+export type Lens<in S,out T,out A,in B> = {
   get: (s: S) => A,
   modify: (s: S, a: B) => T,
 }
 
-export type SimpleLens<S, A> = Lens<S, S, A, A>
+export type SimpleLens<in out S,in out A> = Lens<S, S, A, A>
 
 export namespace Lens {
   export const compose =

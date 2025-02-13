@@ -4,7 +4,6 @@ import { Exhibit, useDebounce, useExhibitedState } from "../Hooks";
 import { Color, Option, Lens, Some, None } from "../Utils";
 import { Outcome, PickedColorState } from "../Game";
 import { Div, Empty, Fold, Str } from "../basics";
-import * as Basics from "../basics"
 
 type RGB<A> = { r: A, g: A, b: A }
 type RGBComponentLens<C extends string> = <A,B>() =>
@@ -19,22 +18,10 @@ const withB: RGBComponentLens<'b'> = () =>
 
 export type ColorPicker<A> = {
   ColorPicker: (
-    disabledWith: Option<{ actual: Color, outcome: Outcome }>,
-    // state: PickedColorState,
+    props: {disabledWith: Option<{ actual: Color, outcome: Outcome }>},
   ) => A,
 }
-export const ColorPicker: FC<{
-  disabledWith: Option<{
-    actual: Color;
-    outcome: Outcome;
-  }>,
-  state: PickedColorState,
-}> = ({disabledWith,state}) =>
-  ColorPickerFT(disabledWith)({
-    ...Basics.Elements.basic,
-    ...Elements.ghostSlider,
-    ...Elements.colorSlider(state),
-  })
+
 export const ColorPickerFT = (
     disabledWith: Option<{ actual: Color, outcome: Outcome }>,
   ) =>
@@ -93,7 +80,7 @@ export const ColorPickerFT = (
 type GhostSlider<A> = {
   GhostSlider: (value: Option<number>) => A,
 }
-const GhostSlider: FC<{ value: Option<number> }> = ({ value }) =>
+export const GhostSlider: FC<{ value: Option<number> }> = ({ value }) =>
   <>
     <div className="slidecontainer ghost">
       <input
@@ -152,7 +139,7 @@ const ColorSlider: FC<ColorSliderProps> = ({ disabled, exhibit, child }) => {
     </div>
   </>
 }
-namespace Elements {
+export namespace Elements {
   export const ghostSlider: GhostSlider<ReactElement> = {
     GhostSlider: value => <GhostSlider value={value}/>,
   }

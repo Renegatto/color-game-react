@@ -1,9 +1,10 @@
 "use client"
 import { Dispatch, FC, ReactElement, SetStateAction } from "react";
 import { Color, colorToCode, Current, eachIsClose, State, randomColor, Some, None } from "./Utils";
-import { ColorPicker } from "./components/ColorPicker";
+import { ColorPicker, ColorPickerFT, GhostSlider } from "./components/ColorPicker";
 import { Div, Empty, Fold, Input, Str, UseDebounce, UseEffect, UsePeek, UseState } from "./basics";
 import * as Basics from "./basics"
+import * as Picker from "./components/ColorPicker"
 import { Exhibit, useExhibitedState, usePeek } from "./Hooks";
 
 export const DEFAULT_COLOR: Color = { r: 0, g: 0, b: 0 }
@@ -167,18 +168,24 @@ type GameRoundProps = {
   state: GameRoundState,
   difficulty: number,
 }
-const GameRound: FC<GameRoundProps> = ({state,restartGame,difficulty}) =>
-  GameRoundFT(restartGame,state,difficulty)({
+const GameRound: FC<GameRoundProps> = ({state,restartGame,difficulty}) => {
+  const ColorPicker = (props: {disabledWith: Parameters<typeof ColorPickerFT>[0]}) =>
+    ColorPickerFT(props.disabledWith)({
+      ...Basics.Elements.basic,
+      ...Picker.Elements.colorSlider(state),
+      ...Picker.Elements.ghostSlider,
+    })
+  return GameRoundFT(restartGame,state,difficulty)({
     ...Basics.Elements.basic,
     RestartBtn: restartGame => <RestartBtn restartGame={restartGame}/>,
     PickColorBtn: onPickColor => <PickColorBtn onPickColor={onPickColor}/>,
-    ...Elements.colorPicker(state),
+    ColorPicker: ({disabledWith}) => <ColorPicker disabledWith={disabledWith}/>,
     ...Elements.difficultyPicker(state),
     ...Elements.coloredBackground,
     ...Elements.colorsComparison,
     ...Elements.infoBar,
   })
-
+}
 type GameRoundState = DifficultyState
   & GameStateState
   & PickedColorState
@@ -225,12 +232,12 @@ export const GameRoundFT = (
     ended: () => false,
   })
   return alg.div({className: "game-round"})([
-    alg.ColorPicker(
-      GameState.current.match({
+    alg.ColorPicker({
+      disabledWith: GameState.current.match({
         ended: outcome => Some({ actual: actualColor, outcome }),
         playing: None(),
       }),
-    ),
+    }),
     alg.InfoBar({ GameState }, difficulty),
     alg.div({className: "colored-background"})([
       GameState.current.match({
@@ -428,10 +435,9 @@ namespace Elements {
     })
     return {DifficultyPicker: <DifficultyPicker/>}
   }
-  export const colorPicker = (state:PickedColorState): ColorPicker<ReactElement> => ({
-    ColorPicker: (disabledWith) =>
-      <ColorPicker disabledWith={disabledWith} state={state}/>
-  })
+  // export const colorPicker: ColorPicker<ReactElement> => {
+  //   <ColorPicker disabledWith={disabledWith}/>
+  // }
 }
 
 // const capitalized = <A,Alg>(

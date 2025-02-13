@@ -4,6 +4,7 @@ import { Exhibit, useDebounce, useExhibitedState } from "../Hooks";
 import { Color, Option, Lens, Some, None } from "../Utils";
 import { Outcome, PickedColorState } from "../Game";
 import { Div, Empty, Fold, Str } from "../basics";
+import * as Basics from "../basics"
 
 type RGB<A> = { r: A, g: A, b: A }
 type RGBComponentLens<C extends string> = <A,B>() =>
@@ -22,10 +23,11 @@ export type ColorPicker<A> = {
   ) => A,
 }
 
-export const ColorPickerFT = (
+export const ColorPickerFT = <S,>(
     disabledWith: Option<{ actual: Color, outcome: Outcome }>,
+    state: S,
   ) =>
-  <A,>(alg: Div<A> & Str<A> & Empty<A> & Fold<A> & ColorSlider<A> & GhostSlider<A>): A => {
+  <A,>(alg: Div<A> & Str<A> & Empty<A> & Fold<A> & ColorSlider<S,A> & GhostSlider<A>): A => {
 
   const disabled = disabledWith.match({
     some: () => true,
@@ -44,6 +46,7 @@ export const ColorPickerFT = (
       disabled,
       component,
       n => alg.str(`${colorName}: ${n}`),
+      state,
     );
 
   const drawSlidersPair = (
@@ -102,21 +105,22 @@ export const GhostSlider: FC<{ value: Option<number> }> = ({ value }) =>
 
 // color slider
 
-type ColorSlider<A> = {
+type ColorSlider<S,A> = {
   ColorSlider: (
     disabled: boolean,
     whoami: RGBComponentLens<string>,
     child: (current: number) => A,
+    state: S,
   ) => A,
 }
 
-type ColorSliderProps = {
+type ColorSliderProps<S> = {
   disabled: boolean,
   child: (current: number) => ReactElement,
-  exhibit: Exhibit<number>,
+  state: S,
 }
 
-const ColorSlider: FC<ColorSliderProps> = ({ disabled, exhibit, child }) => {
+const ColorSlider: FC<ColorSliderProps<{exhibit: Exhibit<number>}>> = ({ disabled, state: {exhibit}, child }) => {
   const [component,setComponent] = useExhibitedState(125, exhibit)
   const debounce = useDebounce(10)
   return <>
@@ -140,21 +144,37 @@ const ColorSlider: FC<ColorSliderProps> = ({ disabled, exhibit, child }) => {
   </>
 }
 export namespace Elements {
+  export const ColorPicker: FC<{
+    disabledWith: Option<{actual: Color,outcome: Outcome}>,
+    state: PickedColorState,
+  }> = (
+    props: {
+      disabledWith: Option<{actual: Color,outcome: Outcome}>,
+      state: PickedColorState,
+    }
+  ) =>
+    ColorPickerFT(props.disabledWith,props.state)({
+      ...Basics.Elements.basic,
+      ...Elements.colorSlider,
+      ...Elements.ghostSlider,
+    })
+
   export const ghostSlider: GhostSlider<ReactElement> = {
     GhostSlider: value => <GhostSlider value={value}/>,
   }
-  export const colorSlider = (state: PickedColorState): ColorSlider<ReactElement> => ({
-    ColorSlider: (disabled, whoami, child) =>
+  export const colorSlider: ColorSlider<PickedColorState,ReactElement> = {
+    ColorSlider: (disabled, whoami, child, {PickedColor}) =>
       <ColorSlider
         disabled={disabled}
-        exhibit={
-          whoami<Exhibit<number>,Exhibit<number>>().get({
-            r: state.PickedColor.exhibitR,
-            g: state.PickedColor.exhibitG,
-            b: state.PickedColor.exhibitB,
-          })
-        }
+        state={{
+          exhibit:
+            whoami<Exhibit<number>,Exhibit<number>>().get({
+              r: PickedColor.exhibitR,
+              g: PickedColor.exhibitG,
+              b: PickedColor.exhibitB,
+            })
+        }}
         child={child}
       />,
-  })
+  }
 }

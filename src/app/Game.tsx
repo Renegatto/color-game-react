@@ -1,10 +1,9 @@
 "use client"
 import { Dispatch, FC, ReactElement, SetStateAction } from "react";
-import { Color, colorToCode, Current, eachIsClose, State, randomColor, Some, None } from "./Utils";
-import { ColorPicker, ColorPickerFT, GhostSlider } from "./components/ColorPicker";
+import { Color, colorToCode, Current, eachIsClose, Option, State, randomColor, Some, None } from "./Utils";
+import * as ColorPicker from "./components/ColorPicker";
 import { Div, Empty, Fold, Input, Str, UseDebounce, UseEffect, UsePeek, UseState } from "./basics";
 import * as Basics from "./basics"
-import * as Picker from "./components/ColorPicker"
 import { Exhibit, useExhibitedState, usePeek } from "./Hooks";
 
 export const DEFAULT_COLOR: Color = { r: 0, g: 0, b: 0 }
@@ -168,18 +167,13 @@ type GameRoundProps = {
   state: GameRoundState,
   difficulty: number,
 }
+
 const GameRound: FC<GameRoundProps> = ({state,restartGame,difficulty}) => {
-  const ColorPicker = (props: {disabledWith: Parameters<typeof ColorPickerFT>[0]}) =>
-    ColorPickerFT(props.disabledWith)({
-      ...Basics.Elements.basic,
-      ...Picker.Elements.colorSlider(state),
-      ...Picker.Elements.ghostSlider,
-    })
   return GameRoundFT(restartGame,state,difficulty)({
     ...Basics.Elements.basic,
     RestartBtn: restartGame => <RestartBtn restartGame={restartGame}/>,
     PickColorBtn: onPickColor => <PickColorBtn onPickColor={onPickColor}/>,
-    ColorPicker: ({disabledWith}) => <ColorPicker disabledWith={disabledWith}/>,
+    ColorPicker: ({disabledWith}) => <ColorPicker.Elements.ColorPicker disabledWith={disabledWith} state={state}/>,
     ...Elements.difficultyPicker(state),
     ...Elements.coloredBackground,
     ...Elements.colorsComparison,
@@ -205,7 +199,7 @@ export const GameRoundFT = (
   alg: Div<A> & Empty<A>
     & PickColorBtn<A>
     & RestartBtn<A>
-    & ColorPicker<A>
+    & ColorPicker.ColorPicker<A>
     & ColoredBackground<A>
     & DifficultyPicker<A>
     & ColorsComparison<A>

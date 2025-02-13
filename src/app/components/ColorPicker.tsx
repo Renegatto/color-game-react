@@ -20,7 +20,7 @@ const withB: RGBComponentLens<'b'> = () =>
 export type ColorPicker<A> = {
   ColorPicker: (
     disabledWith: Option<{ actual: Color, outcome: Outcome }>,
-    state: PickedColorState,
+    // state: PickedColorState,
   ) => A,
 }
 export const ColorPicker: FC<{
@@ -30,14 +30,13 @@ export const ColorPicker: FC<{
   }>,
   state: PickedColorState,
 }> = ({disabledWith,state}) =>
-  ColorPickerFT(disabledWith,state)({
+  ColorPickerFT(disabledWith)({
     ...Basics.Elements.basic,
     ...Elements.ghostSlider,
-    ...Elements.colorSlider,
+    ...Elements.colorSlider(state),
   })
 export const ColorPickerFT = (
     disabledWith: Option<{ actual: Color, outcome: Outcome }>,
-    {PickedColor}: PickedColorState 
   ) =>
   <A,>(alg: Div<A> & Str<A> & Empty<A> & Fold<A> & ColorSlider<A> & GhostSlider<A>): A => {
 
@@ -56,11 +55,7 @@ export const ColorPickerFT = (
   ): A =>
     alg.ColorSlider(
       disabled,
-      component<Exhibit<number>,Exhibit<number>>().get({
-        r: PickedColor.exhibitR,
-        g: PickedColor.exhibitG,
-        b: PickedColor.exhibitB,
-      }),
+      component,
       n => alg.str(`${colorName}: ${n}`),
     );
 
@@ -123,7 +118,7 @@ const GhostSlider: FC<{ value: Option<number> }> = ({ value }) =>
 type ColorSlider<A> = {
   ColorSlider: (
     disabled: boolean,
-    exhibit: Exhibit<number>,
+    whoami: RGBComponentLens<string>,
     child: (current: number) => A,
   ) => A,
 }
@@ -161,8 +156,18 @@ namespace Elements {
   export const ghostSlider: GhostSlider<ReactElement> = {
     GhostSlider: value => <GhostSlider value={value}/>,
   }
-  export const colorSlider: ColorSlider<ReactElement> = {
-    ColorSlider: (disabled, exhibit, child) =>
-      <ColorSlider disabled={disabled} exhibit={exhibit} child={child}/>,
-  }
+  export const colorSlider = (state: PickedColorState): ColorSlider<ReactElement> => ({
+    ColorSlider: (disabled, whoami, child) =>
+      <ColorSlider
+        disabled={disabled}
+        exhibit={
+          whoami<Exhibit<number>,Exhibit<number>>().get({
+            r: state.PickedColor.exhibitR,
+            g: state.PickedColor.exhibitG,
+            b: state.PickedColor.exhibitB,
+          })
+        }
+        child={child}
+      />,
+  })
 }

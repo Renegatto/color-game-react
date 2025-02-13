@@ -156,7 +156,7 @@ const GameRound: FC<GameRoundProps> = ({state,restartGame}) =>
     ...Basics.Elements.basic,
     RestartBtn: restartGame => <RestartBtn restartGame={restartGame}/>,
     PickColorBtn: onPickColor => <PickColorBtn onPickColor={onPickColor}/>,
-    ...Elements.colorPicker,
+    ...Elements.colorPicker(state),
     ...Elements.difficultyPicker,
     ...Elements.coloredBackground,
     ...Elements.colorsComparison,
@@ -213,7 +213,6 @@ export const GameRoundFT = (
         ended: outcome => Some({ actual: actualColor, outcome }),
         playing: None(),
       }),
-      {PickedColor},
     ),
     alg.InfoBar({ Difficulty, GameState }),
     alg.div({className: "colored-background"})([
@@ -395,10 +394,10 @@ namespace Elements {
   export const difficultyPicker: DifficultyPicker<ReactElement> = {
     DifficultyPicker: state => <DifficultyPicker state={state}/>
   }
-  export const colorPicker: ColorPicker<ReactElement> = {
-    ColorPicker: (disabledWith,state) =>
+  export const colorPicker = (state:PickedColorState): ColorPicker<ReactElement> => ({
+    ColorPicker: (disabledWith) =>
       <ColorPicker disabledWith={disabledWith} state={state}/>
-  }
+  })
 }
 
 // const capitalized = <A,Alg>(

@@ -3,7 +3,7 @@ import { Dispatch, SetStateAction, useRef, useState } from "react"
 export type Exhibit<A> =
   (update: Dispatch<SetStateAction<A>>) => Dispatch<SetStateAction<A>>
 
-export const usePeek = <A,>(initial: Exclude<A,Function> ): {
+export const usePeek = <A,>(initial: A): {
   peek: () => A,
   exhibit: Exhibit<A>,
 } => {

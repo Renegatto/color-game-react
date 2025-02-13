@@ -38,6 +38,10 @@ export type UseEffect<in out A> = {
   ) => A,
 }
 
+export type UsePeek<A> = {
+  usePeek: <S>(initial: S, cont: (state: {peek: () => S, exhibit: Hooks.Exhibit<S>}) => A) => A,
+}
+
 export type Basics<A> = 
   & Div<A>
   & Str<A>
@@ -80,6 +84,9 @@ export namespace Elements {
       const s = React.useState(initial)
       return cont(s)
     }
+  }
+  export const usePeek: UsePeek<ReactElement> = {
+    usePeek: (initial,cont) => cont(Hooks.usePeek(initial))
   }
   export const input: Input<ReactElement> = {
     input: props => createElement('input',props)

@@ -1,10 +1,10 @@
 "use client"
-import { FC, ReactElement } from "react";
+import { Dispatch, FC, ReactElement, SetStateAction } from "react";
 import { Color, colorToCode, Current, eachIsClose, State, randomColor, Some, None } from "./Utils";
 import { ColorPicker } from "./components/ColorPicker";
-import { Div, Empty, Fold, Input, Str, UseDebounce, UseEffect, UseState } from "./basics";
+import { Div, Empty, Fold, Input, Str, UseDebounce, UseEffect, UsePeek, UseState } from "./basics";
 import * as Basics from "./basics"
-import { Exhibit, usePeek } from "./Hooks";
+import { Exhibit, useExhibitedState, usePeek } from "./Hooks";
 
 export const DEFAULT_COLOR: Color = { r: 0, g: 0, b: 0 }
 const DEFAULT_DIFFICULTY = 10
@@ -47,12 +47,19 @@ const displayDifficulty = (difficulty: number): string =>
 
 // Shared state
 
-export type DifficultyState = { Difficulty: State<number> }
+export type DifficultyState = {
+  Difficulty: {
+    peek: () => number,
+    exhibit: Exhibit<number>,
+  }
+}
+export type RoundDifficultyState = { RoundDifficulty: State<number> }
 export type GuessedColorState = { GuessedColor: State<Color> }
 export type PickedColorState = { PickedColor: ColorState }
 export type GameStateState = { GameState: State<OngoingGameState> }
 export type GameState =
   DifficultyState
+  & RoundDifficultyState
   & GuessedColorState
   & PickedColorState
   & GameStateState
@@ -62,7 +69,7 @@ export type GameState =
 // Components
 
 export const makeGameState = <A,>(
-  alg: UseState<A> & UseEffect<A> & Empty<A> & UseColor<A>,
+  alg: UseState<A> & UseEffect<A> & Empty<A> & UseColor<A> & UsePeek<A>,
   cont: (
     state: GameState,
     key: number,
@@ -80,13 +87,16 @@ export const makeGameState = <A,>(
         () =>
           alg.useState(
           DEFAULT_DIFFICULTY,
-          ([difficulty, setDifficulty]) =>
+          ([difficulty,setDifficulty]) =>
           alg.useState(
           0,
           ([gameId, setGameId]) =>
           alg.useState<OngoingGameState>(
           () => ({ match: alg => alg.playing }),
           ([gameState, setGameState]) =>
+          alg.usePeek(
+          difficulty,
+          difficultyState =>
           alg.useColor(
           DEFAULT_COLOR,
           colorState => {
@@ -94,13 +104,14 @@ export const makeGameState = <A,>(
               return alg.empty
             } else {
               return cont({
-                Difficulty: State(difficulty, setDifficulty),
+                Difficulty: difficultyState,
+                RoundDifficulty: State(difficulty,setDifficulty),
                 GuessedColor: State(guessedColor, setGuessedColor),
                 PickedColor: colorState,
                 GameState: State(gameState, setGameState),
               },gameId,setGameId)
             }
-          }))))))
+          })))))))
 
 export const Game: FC = () =>
   GameFT<ReactElement>({
@@ -109,15 +120,17 @@ export const Game: FC = () =>
       ...Basics.Elements.useState,
       ...Basics.Elements.empty,
       useColor: (initial,cont) => cont(useColor(initial)),
+      ...Basics.Elements.usePeek,
     },cont),
-    GameRound: (key,state,restart) =>
-      <GameRound key={key} state={state} restartGame={restart}/>
+    GameRound: (key,state,difficulty,restart) =>
+      <GameRound key={key} state={state} restartGame={restart} difficulty={difficulty}/>
   })
 export const GameFT = <A,>(
   alg: {
     GameRound: (
       key: number,
       state: GameRoundState,
+      difficulty: number,
       restartGame: () => void,
     ) => A,
     makeGameState: (cont: (
@@ -132,15 +145,17 @@ export const GameFT = <A,>(
       const restartGame = (): void => {
         state.GuessedColor.update(() => randomColor())
         state.GameState.update(() => ({ match: alg => alg.playing }))
+        state.RoundDifficulty.update(state.Difficulty.peek)
         setKey((id: number) => (id + 1) % 2)
       }
       return alg.GameRound(
         key,
         state,
+        state.RoundDifficulty.current,
         () => {
           restartGame();
           // just for fun, let's print the schema
-          console.log(GameRoundSchema({state,restartGame}));
+          console.log(GameRoundSchema({state,restartGame,difficulty: state.RoundDifficulty.current}));
         },
       )
     }
@@ -149,15 +164,16 @@ export const GameFT = <A,>(
 // GameRound
 type GameRoundProps = {
   restartGame: () => void,
-  state: GameRoundState
+  state: GameRoundState,
+  difficulty: number,
 }
-const GameRound: FC<GameRoundProps> = ({state,restartGame}) =>
-  GameRoundFT(restartGame,state)({
+const GameRound: FC<GameRoundProps> = ({state,restartGame,difficulty}) =>
+  GameRoundFT(restartGame,state,difficulty)({
     ...Basics.Elements.basic,
     RestartBtn: restartGame => <RestartBtn restartGame={restartGame}/>,
     PickColorBtn: onPickColor => <PickColorBtn onPickColor={onPickColor}/>,
     ...Elements.colorPicker(state),
-    ...Elements.difficultyPicker,
+    ...Elements.difficultyPicker(state),
     ...Elements.coloredBackground,
     ...Elements.colorsComparison,
     ...Elements.infoBar,
@@ -175,7 +191,8 @@ export const GameRoundFT = (
     GameState,
     PickedColor,
     GuessedColor: { current: actualColor },
-  }: GameRoundState
+  }: GameRoundState,
+  difficulty: number,
 ) =>
 <A,>(
   alg: Div<A> & Empty<A>
@@ -189,7 +206,7 @@ export const GameRoundFT = (
   ): A => {
   const onPickColor = (): void => {
     const [matches, maxDifference] = eachIsClose(
-      Difficulty.current,
+      Difficulty.peek(),
       PickedColor.currentColor(),
       actualColor
     )
@@ -198,7 +215,7 @@ export const GameRoundFT = (
         matches ? Outcome.victory : Outcome.defeat,
         maxDifference,
         PickedColor.currentColor(),
-        Difficulty.current,
+        Difficulty.peek(),
       )
     })
     )
@@ -214,7 +231,7 @@ export const GameRoundFT = (
         playing: None(),
       }),
     ),
-    alg.InfoBar({ Difficulty, GameState }),
+    alg.InfoBar({ GameState }, difficulty),
     alg.div({className: "colored-background"})([
       GameState.current.match({
         playing: alg.ColoredBackground(actualColor,alg.empty),
@@ -227,7 +244,7 @@ export const GameRoundFT = (
         ? alg.PickColorBtn(onPickColor)
         : alg.div({className: "game bottom-block reset-options"})([
             alg.RestartBtn(restartGame),
-            alg.DifficultyPicker({Difficulty}),
+            alg.DifficultyPicker,
           ])
     ]),
   ]);
@@ -265,14 +282,15 @@ const RestartBtn: FC<{ restartGame: () => void }> = ({restartGame}) =>
 
 type InfoBar<A> = {
   InfoBar: (
-    state: Current<DifficultyState> & Current<GameStateState>
+    state: Current<GameStateState>,
+    difficulty: number,
   ) => A,
 }
-const InfoBar: FC<{state: Current<DifficultyState> & Current<GameStateState>}> =
-  ({state}) => InfoBarFT(state)(Basics.Elements.basic)
+const InfoBar: FC<{state: Current<GameStateState>, difficulty: number}> =
+  ({state,difficulty}) => InfoBarFT(state,difficulty)(Basics.Elements.basic)
 export const InfoBarFT =
-  ({ Difficulty, GameState } :
-    Current<DifficultyState> & Current<GameStateState>
+  ({ GameState } : Current<GameStateState>,
+    difficulty: number,
   ) =>
   <A,>(alg: Div<A> & Str<A>): A =>
   alg.div({className: "info-bar"})([
@@ -290,7 +308,7 @@ export const InfoBarFT =
     alg.div({})([
       alg.str(`Difficulty: ${
         displayDifficulty(GameState.current.match({
-          playing: Difficulty.current,
+          playing: difficulty,
           // we only display difficulty AT THE MOMENT game was over
           ended: (_out, _diff, _color, difficulty) => difficulty,
         }))
@@ -345,39 +363,50 @@ export const ColoredBackgroundFT =
 // difficulty picker
 
 type DifficultyPicker<A> = {
-  DifficultyPicker: (state: DifficultyState) => A,
+  DifficultyPicker: A,
 }
-const DifficultyPicker: FC<{state: DifficultyState}> =
-  ({state}) => DifficultyPickerFT(state)(Basics.Elements.basic)
+
+type UseExhibitedState<S,A> = {
+  useExhibitedState: (initial: S, cont: (state: [S,Dispatch<SetStateAction<S>>]) => A) => A,
+}
 
 const DifficultyPickerFT =
- ({ Difficulty } : DifficultyState) =>
-  <A,>(alg: Div<A> & Str<A> & UseDebounce<A> & Input<A>): A =>
-    alg.useDebounce(10, debounce =>
-      alg.div({className: "difficulty-picker"})([
-        alg.div({})([
-          alg.str(`Restart with difficulty: ${
-            displayDifficulty(Difficulty.current)
-          }`)
-        ]),
-        alg.div({})([
-          alg.input({
-            type: "range",
-            min: "0",
-            max: "100",
-            defaultValue: Difficulty.current,
-            onChange: 
-              e => {
-                const newValue = e.currentTarget.valueAsNumber
-                debounce(() =>
-                  Difficulty.update(() => newValue)
-                )
-              },
-            className: 'slider difficulty-picker',
-          })
-        ])
-      ])
+  <A,>(alg: Div<A>
+      & Str<A>
+      & UseDebounce<A>
+      & Input<A>
+      & UseExhibitedState<number,A>
+    ): A =>
+    alg.useExhibitedState(
+      DEFAULT_DIFFICULTY,
+      ([difficulty,setDifficulty]) =>
+        alg.useDebounce(10, debounce =>
+          alg.div({className: "difficulty-picker"})([
+            alg.div({})([
+              alg.str(`Restart with difficulty: ${
+                displayDifficulty(difficulty)
+              }`)
+            ]),
+            alg.div({})([
+              alg.input({
+                type: "range",
+                min: "0",
+                max: "100",
+                defaultValue: difficulty,
+                onChange: 
+                  e => {
+                    const newValue = e.currentTarget.valueAsNumber
+                    debounce(() =>
+                      setDifficulty(() => newValue)
+                    )
+                  },
+                className: 'slider difficulty-picker',
+              })
+            ])
+          ])
+        )
     )
+    
 
 namespace Elements {
   export const coloredBackground: ColoredBackground<ReactElement> = {
@@ -385,14 +414,19 @@ namespace Elements {
     <ColoredBackground color={color} child={child}/>
   }
   export const infoBar: InfoBar<ReactElement> = {
-    InfoBar: state => <InfoBar state={state}/>
+    InfoBar: (state,difficulty) => <InfoBar state={state} difficulty={difficulty}/>
   }
   export const colorsComparison: ColorsComparison<ReactElement> = {
     ColorsComparison: (actual,picked) =>
       <ColorsComparison actual={actual} picked={picked}/>
   }
-  export const difficultyPicker: DifficultyPicker<ReactElement> = {
-    DifficultyPicker: state => <DifficultyPicker state={state}/>
+  export const difficultyPicker = (state: DifficultyState): DifficultyPicker<ReactElement> => {
+    const DifficultyPicker: FC = () => DifficultyPickerFT({
+      ...Basics.Elements.basic,
+      useExhibitedState: (initial, cont) =>
+        cont(useExhibitedState(initial,state.Difficulty.exhibit))
+    })
+    return {DifficultyPicker: <DifficultyPicker/>}
   }
   export const colorPicker = (state:PickedColorState): ColorPicker<ReactElement> => ({
     ColorPicker: (disabledWith) =>
@@ -413,20 +447,19 @@ namespace Elements {
 //   capitalizedGameRound(props)(gameRoundElements)
 
 // GameRound schema
-const GameRoundSchema = ({state,restartGame}: GameRoundProps): string =>
-  GameRoundFT(restartGame,state)({
+const GameRoundSchema = ({state,restartGame,difficulty}: GameRoundProps): string =>
+  GameRoundFT(restartGame,state,difficulty)({
     ...Basics.StringSchema.schema,
     PickColorBtn: () => "[PickColorBtn]",
     RestartBtn: () => "[RestartBtn]",
     ColorPicker: () => "[ColorPicker]",
     ColoredBackground: (color,child) =>
       `[ColoredBackground color=${colorToCode(color)}]${child}[end ColoredBackground]`,
-    DifficultyPicker: ({Difficulty: {current}}) =>
-      `[DifficultyPicker current=${current}]`,
+    DifficultyPicker: `[DifficultyPicker]`,
     ColorsComparison: (actual,picked) =>
       `[ColorsComparison actual=${colorToCode(actual)} picked=${colorToCode(picked)}]`,
-    InfoBar: ({Difficulty: {current: currentDifficulty}, GameState: {current: currentGameState}}) =>
-      `[InfoBar difficulty=${currentDifficulty} gameState=${currentGameState.match({
+    InfoBar: ({ GameState: {current: currentGameState}},difficulty) =>
+      `[InfoBar difficulty=${difficulty} gameState=${currentGameState.match({
         playing: "Playing",
         ended: (outcome,difference,withDifficulty) =>
         `'${outcome.match({defeat: 'Lost',victory: 'Won'})}\

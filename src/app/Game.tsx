@@ -49,7 +49,7 @@ const displayDifficulty = (difficulty: number): string =>
 
 export type DifficultyState = {
   Difficulty: {
-    peek: () => number,
+    peek: (cont: (difficulty: number) => void) => void,
     exhibit: Exhibit<number>,
   }
 }
@@ -145,7 +145,9 @@ export const GameFT = <A,>(
       const restartGame = (): void => {
         state.GuessedColor.update(() => randomColor())
         state.GameState.update(() => ({ match: alg => alg.playing }))
-        state.RoundDifficulty.update(state.Difficulty.peek)
+        state.Difficulty.peek(difficulty =>
+          state.RoundDifficulty.update(() => difficulty)
+        )
         setKey((id: number) => (id + 1) % 2)
       }
       return alg.GameRound(
@@ -207,19 +209,23 @@ export const GameRoundFT = <S,>(
     GuessedColor: { current: actualColor },
   } = state
   const onPickColor = (): void => {
-    const [matches, maxDifference] = eachIsClose(
-      Difficulty.peek(),
-      PickedColor.currentColor(),
-      actualColor
-    )
-    GameState.update(() => ({
-      match: alg => alg.ended(
-        matches ? Outcome.victory : Outcome.defeat,
-        maxDifference,
-        PickedColor.currentColor(),
-        Difficulty.peek(),
-      )
-    })
+    PickedColor.currentColor(currentColor =>
+      Difficulty.peek(currentDifficulty => {
+        const [matches, maxDifference] = eachIsClose(
+          currentDifficulty,
+          currentColor,
+          actualColor,
+        )
+        GameState.update(() => ({
+          match: alg => alg.ended(
+            matches ? Outcome.victory : Outcome.defeat,
+            maxDifference,
+            currentColor,
+            currentDifficulty,
+          )
+        })
+        )
+      })
     )
   }
   const stillPlaying: boolean = GameState.current.match({
@@ -485,7 +491,7 @@ type UseColor<A> = {
   useColor: (color: Color, cont: (s: ColorState) => A) => A,
 }
 export type ColorState = {
-  currentColor: () => Color,
+  currentColor: (cont: (c: Color) => void) => void,
   exhibitR: Exhibit<number>,
   exhibitG: Exhibit<number>,
   exhibitB: Exhibit<number>,
@@ -499,6 +505,10 @@ const useColor = (initialColor: Color): ColorState => {
     exhibitR: r.exhibit,
     exhibitG: g.exhibit,
     exhibitB: b.exhibit,
-    currentColor: () => ({r: r.peek(), g: g.peek(), b: b.peek()}),
+    currentColor: (cont) => r.peek(r1 =>
+      g.peek(g1 =>
+        b.peek(b1 => cont({r:r1,g:g1,b:b1}))
+      )
+    ),
   }
 }

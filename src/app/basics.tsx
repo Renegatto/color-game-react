@@ -39,7 +39,10 @@ export type UseEffect<in out A> = {
 }
 
 export type UsePeek<A> = {
-  usePeek: <S>(initial: S, cont: (state: {peek: () => S, exhibit: Hooks.Exhibit<S>}) => A) => A,
+  usePeek: <S>(
+    initial: S,
+    cont: (state: {peek: (cont: (s: S) => void) => void, exhibit: Hooks.Exhibit<S>}) => A,
+  ) => A,
 }
 
 export type Basics<A> = 

@@ -1,23 +1,27 @@
-import { Dispatch, SetStateAction, useRef, useState } from "react"
+import { Dispatch, SetStateAction, useCallback, useRef, useState } from "react"
 
 export type Exhibit<A> =
   (update: Dispatch<SetStateAction<A>>) => Dispatch<SetStateAction<A>>
 
 export const usePeek = <A,>(initial: A): {
-  peek: () => A,
+  peek: (use: (a: A) => void) => void,
   exhibit: Exhibit<A>,
 } => {
   const ref = useRef(initial)
-  const exhibit = (setState: Dispatch<SetStateAction<A>>): Dispatch<SetStateAction<A>> => f => {
+  const exhibit = useCallback((setState: Dispatch<SetStateAction<A>>): Dispatch<SetStateAction<A>> => f => {
     setState(old => {
       const s1 = typeof f != 'function' ? f : (f as any)(old)
       ref.current = s1
       return s1
     })
-  }
+  },[])
+  const peek = useCallback((cont: (a: A) => void) =>
+    cont(ref.current),
+    [],
+  )
   return {
     exhibit,
-    peek: () => ref.current,
+    peek,
   }
 }
 
@@ -29,14 +33,15 @@ export const useExhibitedState = <A,>(
   exhibit: Exhibit<A>,
 ): [A,Dispatch<SetStateAction<A>>] => {
   const [s,setS] = useState(initial)
-  return [s,exhibit(setS)]
+  const setSExhibited = useCallback(exhibit(setS),[setS])
+  return [s,setSExhibited]
 }
 /*
 
     */
 export const useDebounce = (delayMs: number): ((cont: () => void) => void) => {
   const [{cancel},setCancel] = useState({cancel: () => {}})
-  const updateWithDelay = (cont: () => void): void => {
+  const updateWithDelay = useCallback((cont: () => void): void => {
     cancel()
     const timeout = setTimeout(
       () => {
@@ -46,6 +51,6 @@ export const useDebounce = (delayMs: number): ((cont: () => void) => void) => {
       delayMs
     )
     setCancel({ cancel: () => clearTimeout(timeout) })
-  }
+  },[])
   return updateWithDelay
 }

@@ -17,11 +17,29 @@ const withG: RGBComponentLens<'g'> = () =>
 const withB: RGBComponentLens<'b'> = () =>
   Lens.property("b")
 
-export type ColorPicker<A> = {
+export type ColorPicker<S,A> = {
   ColorPicker: (
-    props: {disabledWith: Option<{ actual: Color, outcome: Outcome }>},
+    props: {
+      disabledWith: Option<{ actual: Color, outcome: Outcome }>,
+      state: S,
+    },
   ) => A,
 }
+
+export const ColorPicker: FC<{
+  disabledWith: Option<{actual: Color,outcome: Outcome}>,
+  state: PickedColorState,
+}> = (
+  props: {
+    disabledWith: Option<{actual: Color,outcome: Outcome}>,
+    state: PickedColorState,
+  }
+) =>
+  ColorPickerFT(props.disabledWith,props.state)({
+    ...Basics.Elements.basic,
+    ...Elements.colorSlider,
+    ...Elements.ghostSlider,
+  })
 
 export const ColorPickerFT = <S,>(
     disabledWith: Option<{ actual: Color, outcome: Outcome }>,
@@ -144,21 +162,6 @@ const ColorSlider: FC<ColorSliderProps<{exhibit: Exhibit<number>}>> = ({ disable
   </>
 }
 export namespace Elements {
-  export const ColorPicker: FC<{
-    disabledWith: Option<{actual: Color,outcome: Outcome}>,
-    state: PickedColorState,
-  }> = (
-    props: {
-      disabledWith: Option<{actual: Color,outcome: Outcome}>,
-      state: PickedColorState,
-    }
-  ) =>
-    ColorPickerFT(props.disabledWith,props.state)({
-      ...Basics.Elements.basic,
-      ...Elements.colorSlider,
-      ...Elements.ghostSlider,
-    })
-
   export const ghostSlider: GhostSlider<ReactElement> = {
     GhostSlider: value => <GhostSlider value={value}/>,
   }

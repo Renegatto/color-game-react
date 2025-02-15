@@ -1,9 +1,9 @@
 "use client"
 import { FC, ReactElement } from "react";
-import { Color, Option, Lens, Some, None } from "../Utils";
-import { Outcome, PickedColorState } from "../Game";
-import { Div, Empty, Fold, Str } from "../basics";
-import * as Basics from "../basics"
+import { Color, Option, Lens, Some, None } from "../../Utils";
+import { Outcome, PickedColorState } from "..";
+import { Div, Empty, Fold, Str } from "../../basics";
+import * as Basics from "../../basics"
 import { ColorSlider, colorSlider } from "./ColorSlider";
 import { GhostSlider, ghostSlider } from "./GhostSlider";
 

@@ -1,8 +1,8 @@
 import { FC, ReactElement } from "react"
-import { displayDifficulty, GameStateState } from "./Game"
-import { Current } from "./Utils"
-import * as Basics from "./basics"
-import { Div, Str } from "./basics"
+import { displayDifficulty, GameStateState } from "."
+import { Current } from "../Utils"
+import * as Basics from "../basics"
+import { Div, Str } from "../basics"
 
 export type InfoBar<A> = {
   InfoBar: (

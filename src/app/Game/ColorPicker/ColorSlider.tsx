@@ -1,6 +1,6 @@
 import { FC, ReactElement } from "react"
-import { Exhibit, useDebounce, useExhibitedState } from "../Hooks"
-import { PickedColorState } from "../Game"
+import { Exhibit, useDebounce, useExhibitedState } from "../../Hooks"
+import { PickedColorState } from ".."
 import { RGBComponentLens } from "."
 
 export type ColorSlider<S,A> = {

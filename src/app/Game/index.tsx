@@ -1,9 +1,9 @@
 "use client"
 import { FC, ReactElement } from "react";
-import { Color, colorToCode, Current, eachIsClose, State, randomColor, Some, None } from "./Utils";
-import { Div, Empty, Fold, Str, UseEffect, UsePeek, UseState } from "./basics";
-import * as Basics from "./basics"
-import { Exhibit, usePeek } from "./Hooks";
+import { Color, colorToCode, Current, eachIsClose, State, randomColor, Some, None } from "../Utils";
+import { Div, Empty, Fold, Str, UseEffect, UsePeek, UseState } from "../basics";
+import * as Basics from "../basics"
+import { Exhibit, usePeek } from "../Hooks";
 import { colorPicker, ColorPicker } from "./ColorPicker";
 import { InfoBar, infoBar } from "./InfoBar";
 import { DifficultyPicker, difficultyPicker } from "./DifficultyPicker";

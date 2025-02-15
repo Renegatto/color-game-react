@@ -1,5 +1,5 @@
-import { ColorPickerFT } from "@/app/ColorPicker/index.tsx";
-import { DEFAULT_COLOR, GameFT, GameRoundFT, GameState, OngoingGameState, Outcome } from "../src/app/Game.tsx"
+import { ColorPickerFT } from "@/app/Game/ColorPicker/index.tsx";
+import { DEFAULT_COLOR, GameFT, GameRoundFT, GameState, OngoingGameState, Outcome } from "../src/app/Game/index.tsx"
 import { expect, test} from "@jest/globals"
 import { None, Some } from "@/app/Utils.ts";
 import { Basics, Div, Empty, Fold, Input, Str, UseDebounce } from "@/app/basics.tsx";

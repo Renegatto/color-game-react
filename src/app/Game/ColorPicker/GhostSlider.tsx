@@ -1,5 +1,5 @@
 import { FC, ReactElement } from "react"
-import {Option} from "../Utils"
+import {Option} from "../../Utils"
 
 export type GhostSlider<A> = {
   GhostSlider: (value: Option<number>) => A,

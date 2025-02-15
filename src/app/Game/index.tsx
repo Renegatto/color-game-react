@@ -180,8 +180,8 @@ export const GameFT = <A,>(
 const GameRoundSchema = ({state,restartGame,difficulty}: GameRoundProps): string =>
   GameRoundFT(restartGame,state,difficulty)({
     ...Basics.StringSchema.schema,
-    PickColorButton: () => "[PickColorBtn]",
-    RestartBtn: () => "[RestartBtn]",
+    PickColorButton: () => "[PickColorButton]",
+    RestartButton: () => "[RestartButton]",
     ColorPicker: () => "[ColorPicker]",
     ColoredBackground: (color,child) =>
       `[ColoredBackground color=${colorToCode(color)}]${child}[end ColoredBackground]`,

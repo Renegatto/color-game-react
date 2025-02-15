@@ -9,6 +9,7 @@ import { infoBar, InfoBar } from "../InfoBar"
 import { ColoredBackground, coloredBackground } from "./ColoredBackground"
 import { ColorsComparison, colorsComparison } from "./ColorsComparison"
 import { PickColorButton } from "./PickColorButton"
+import { RestartButton } from "./RestartButton"
 
 export type GameRoundProps = {
   restartGame: () => void,
@@ -24,7 +25,7 @@ export type GameRoundState = DifficultyState
 export const GameRound: FC<GameRoundProps> = ({state,restartGame,difficulty}) => {
   return GameRoundFT<GameRoundState>(restartGame,state,difficulty)({
     ...Basics.Elements.basic,
-    RestartBtn: restartGame => <RestartBtn restartGame={restartGame}/>,
+    RestartButton: restartGame => <RestartButton restartGame={restartGame}/>,
     PickColorButton: onPickColor => <PickColorButton onPickColor={onPickColor}/>,
     ...colorPicker,
     ...difficultyPicker,
@@ -42,7 +43,7 @@ export const GameRoundFT = <S,>(
 <A,>(
   alg: Div<A> & Empty<A>
     & PickColorButton<A>
-    & RestartBtn<A>
+    & RestartButton<A>
     & ColorPicker<S,A>
     & ColoredBackground<A>
     & DifficultyPicker<S,A>
@@ -99,26 +100,10 @@ export const GameRoundFT = <S,>(
       stillPlaying
         ? alg.PickColorButton(onPickColor)
         : alg.div({className: "game bottom-block reset-options"})([
-            alg.RestartBtn(restartGame),
+            alg.RestartButton(restartGame),
             alg.DifficultyPicker({state}),
           ])
     ]),
   ]);
 }
-
-// pick color button
-
-// restart button
-
-type RestartBtn<A> = {
-  RestartBtn: (restartGame: () => void) => A,
-}
-const RestartBtn: FC<{ restartGame: () => void }> = ({restartGame}) =>
-  <button
-    className="game bottom-block reset-options reset-game-btn"
-    type="button"
-    onClick={restartGame}
-  >
-    Restart
-  </button>
 

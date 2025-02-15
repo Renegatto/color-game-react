@@ -4,7 +4,7 @@ import { Color, colorToCode, State, randomColor } from "../Utils";
 import { Empty, UseEffect, UsePeek, UseState } from "../basics";
 import * as Basics from "../basics"
 import { Exhibit, usePeek } from "../Hooks";
-import { GameRound, GameRoundFT, GameRoundProps, GameRoundState } from "./GameRound/GameRound";
+import { GameRound, GameRoundFT, GameRoundProps, GameRoundState } from "./GameRound";
 
 export const DEFAULT_COLOR: Color = { r: 0, g: 0, b: 0 }
 export const DEFAULT_DIFFICULTY = 10
@@ -180,7 +180,7 @@ export const GameFT = <A,>(
 const GameRoundSchema = ({state,restartGame,difficulty}: GameRoundProps): string =>
   GameRoundFT(restartGame,state,difficulty)({
     ...Basics.StringSchema.schema,
-    PickColorBtn: () => "[PickColorBtn]",
+    PickColorButton: () => "[PickColorBtn]",
     RestartBtn: () => "[RestartBtn]",
     ColorPicker: () => "[ColorPicker]",
     ColoredBackground: (color,child) =>

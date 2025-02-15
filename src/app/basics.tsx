@@ -45,6 +45,14 @@ export type UsePeek<A> = {
   ) => A,
 }
 
+export type UseExhibitedState<A> = {
+  useExhibitedState: <B>(
+    initial: B,
+    exhibit: Hooks.Exhibit<B>,
+    cont: (state: [B,React.Dispatch<React.SetStateAction<B>>]) => A
+  ) => A,
+}
+
 export type Basics<A> = 
   & Div<A>
   & Str<A>

@@ -1,14 +1,15 @@
 "use client"
-import { Dispatch, FC, ReactElement, SetStateAction } from "react";
+import { FC, ReactElement } from "react";
 import { Color, colorToCode, Current, eachIsClose, State, randomColor, Some, None } from "./Utils";
-import { Div, Empty, Fold, Input, Str, UseDebounce, UseEffect, UsePeek, UseState } from "./basics";
+import { Div, Empty, Fold, Str, UseEffect, UsePeek, UseState } from "./basics";
 import * as Basics from "./basics"
-import { Exhibit, useExhibitedState, usePeek } from "./Hooks";
-import { ColorPicker } from "./ColorPicker";
+import { Exhibit, usePeek } from "./Hooks";
+import { colorPicker, ColorPicker } from "./ColorPicker";
 import { InfoBar, infoBar } from "./InfoBar";
+import { DifficultyPicker, difficultyPicker } from "./DifficultyPicker";
 
 export const DEFAULT_COLOR: Color = { r: 0, g: 0, b: 0 }
-const DEFAULT_DIFFICULTY = 10
+export const DEFAULT_DIFFICULTY = 10
 
 // Outcome datatype
 export type Outcome = { match: <C>(alg: OutcomeAlg<C>) => C }
@@ -176,8 +177,8 @@ const GameRound: FC<GameRoundProps> = ({state,restartGame,difficulty}) => {
     ...Basics.Elements.basic,
     RestartBtn: restartGame => <RestartBtn restartGame={restartGame}/>,
     PickColorBtn: onPickColor => <PickColorBtn onPickColor={onPickColor}/>,
-    ...Elements.colorPicker,
-    ...Elements.difficultyPicker,
+    ...colorPicker,
+    ...difficultyPicker,
     ...Elements.coloredBackground,
     ...Elements.colorsComparison,
     ...infoBar,
@@ -334,64 +335,6 @@ export const ColoredBackgroundFT =
 
 // difficulty picker
 
-type DifficultyPicker<S,A> = {
-  DifficultyPicker: (props: { state: S }) => A,
-}
-
-type UseExhibitedState<A> = {
-  useExhibitedState: <B>(
-    initial: B,
-    exhibit: Exhibit<B>,
-    cont: (state: [B,Dispatch<SetStateAction<B>>]) => A
-  ) => A,
-}
-
-const DifficultyPicker: FC<{state: DifficultyState}> =
-  ({state}) => DifficultyPickerFT(state)({
-    ...Basics.Elements.basic,
-    useExhibitedState: (initial,exhibit,cont) =>
-      cont(useExhibitedState(initial,exhibit)),
-    extractOwnState: state => state.Difficulty.exhibit
-  })
-
-const DifficultyPickerFT = <S,>(state: S) =>
-  <A,>(alg: Div<A>
-      & Str<A>
-      & UseDebounce<A>
-      & Input<A>
-      & UseExhibitedState<A>
-      & { extractOwnState: (state: S) => Exhibit<number> }
-    ): A =>
-    alg.useExhibitedState(
-      DEFAULT_DIFFICULTY,
-      alg.extractOwnState(state),
-      ([difficulty,setDifficulty]) =>
-        alg.useDebounce(10, debounce =>
-          alg.div({className: "difficulty-picker"})([
-            alg.div({})([
-              alg.str(`Restart with difficulty: ${
-                displayDifficulty(difficulty)
-              }`)
-            ]),
-            alg.div({})([
-              alg.input({
-                type: "range",
-                min: "0",
-                max: "100",
-                defaultValue: difficulty,
-                onChange: 
-                  e => {
-                    const newValue = e.currentTarget.valueAsNumber
-                    debounce(() =>
-                      setDifficulty(() => newValue)
-                    )
-                  },
-                className: 'slider difficulty-picker',
-              })
-            ])
-          ])
-        )
-    )
     
 
 namespace Elements {
@@ -403,13 +346,7 @@ namespace Elements {
     ColorsComparison: (actual,picked) =>
       <ColorsComparison actual={actual} picked={picked}/>
   }
-  export const difficultyPicker: DifficultyPicker<DifficultyState,ReactElement> ={
-    DifficultyPicker: ({state}) =>
-      <DifficultyPicker state={state}/>
-  }
-  export const colorPicker: ColorPicker<PickedColorState,ReactElement> = {
-    ColorPicker: ({disabledWith,state}) => <ColorPicker disabledWith={disabledWith} state={state}/>
-  }
+
 }
 
 // const capitalized = <A,Alg>(

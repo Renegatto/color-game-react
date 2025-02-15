@@ -1,5 +1,5 @@
 "use client"
-import { FC } from "react";
+import { FC, ReactElement } from "react";
 import { Color, Option, Lens, Some, None } from "../Utils";
 import { Outcome, PickedColorState } from "../Game";
 import { Div, Empty, Fold, Str } from "../basics";
@@ -92,4 +92,8 @@ export const ColorPickerFT = <S,>(
     drawSlidersPair(withB, "B"),
     whenDisabled(overlayOnDisabled),
   ])
+}
+
+export const colorPicker: ColorPicker<PickedColorState,ReactElement> = {
+  ColorPicker: ({disabledWith,state}) => <ColorPicker disabledWith={disabledWith} state={state}/>
 }

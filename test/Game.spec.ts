@@ -1,13 +1,20 @@
 import { ColorPickerFT } from "@/app/Game/ColorPicker/index.tsx";
-import { DEFAULT_COLOR, GameFT, GameRoundFT, GameState, OngoingGameState, Outcome } from "../src/app/Game/index.tsx"
+import { DEFAULT_COLOR, GameFT, GameState, OngoingGameState, Outcome } from "../src/app/Game/index.tsx"
 import { expect, test} from "@jest/globals"
 import { None, Some } from "@/app/Utils.ts";
 import { Basics, Div, Empty, Fold, Input, Str, UseDebounce } from "@/app/basics.tsx";
+import { GameRoundFT } from "@/app/Game/GameRound/index.tsx";
 
-const mockGameState = {
-  Difficulty: { current: 30, update: () => {} },
+const mockGameState: GameState= {
+  Difficulty: { peek: cont => cont(0), exhibit: x => x },
   GuessedColor: { current: {r:0,g:0,b:0}, update: () => {} },
-  PickedColor: { current: {r:0,g:0,b:0}, update: () => {} },
+  PickedColor: {
+    currentColor: cont => cont({r:0,g:0,b:0}),
+    exhibitR: x => x,
+    exhibitB: x => x,
+    exhibitG: x => x,
+  },
+  RoundDifficulty: { current: 0, update: () => {} },
   GameState: { current: OngoingGameState.playing, update: () => {} }
 }
 namespace Noop {
@@ -39,16 +46,16 @@ test('onPicked should switch game state to "ended"', () => {
   }
   const handler: { value?: () => void } = {};
   GameFT({
-    GameRound: (_,state,restart) => {
-      GameRoundFT(restart,state)({
+    GameRound: (_,state,difficulty,restart) => {
+      GameRoundFT(restart,state,difficulty)({
         ...Noop.basics,
-        RestartBtn: () => {},
+        RestartButton: () => {},
         ColorPicker: () => {},
         ColoredBackground: () => {},
         DifficultyPicker: () => {},
         ColorsComparison: () => {},
         InfoBar: () => {},
-        PickColorBtn: onPicked => {handler.value = onPicked}, // this case
+        PickColorButton: onPicked => {handler.value = onPicked}, // this case
       });
     },
     makeGameState: cont => cont(state,2,() => {}),

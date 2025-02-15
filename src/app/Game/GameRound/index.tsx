@@ -1,12 +1,13 @@
-import { FC, ReactElement } from "react"
+import { FC } from "react"
 import * as Basics from "../../basics"
-import { Div, Empty, Fold, Str } from "../../basics"
+import { Div, Empty } from "../../basics"
 import { colorPicker, ColorPicker } from "../ColorPicker"
-import { Color, colorToCode, Current, eachIsClose, None, Some } from "../../Utils"
+import { Current, eachIsClose, None, Some } from "../../Utils"
 import { DifficultyState, GameStateState, GuessedColorState, Outcome, PickedColorState } from ".."
 import { difficultyPicker, DifficultyPicker } from "../DifficultyPicker"
 import { infoBar, InfoBar } from "../InfoBar"
 import { ColoredBackground, coloredBackground } from "./ColoredBackground"
+import { ColorsComparison, colorsComparison } from "./ColorsComparison"
 
 export type GameRoundProps = {
   restartGame: () => void,
@@ -27,7 +28,7 @@ export const GameRound: FC<GameRoundProps> = ({state,restartGame,difficulty}) =>
     ...colorPicker,
     ...difficultyPicker,
     ...coloredBackground,
-    ...Elements.colorsComparison,
+    ...colorsComparison,
     ...infoBar,
   })
 }
@@ -132,42 +133,3 @@ const RestartBtn: FC<{ restartGame: () => void }> = ({restartGame}) =>
     Restart
   </button>
 
-
-// colors comparison
-
-type ColorsComparison<A> = {
-  ColorsComparison: (actual: Color, picked: Color) => A,
-}
-const ColorsComparison: FC<{actual: Color,picked: Color}> =
-  ({actual,picked}) => ColorsComparisonFT(actual,picked)({
-    ...Basics.Elements.basic,
-    ...coloredBackground,
-  })
-export const ColorsComparisonFT =
-  (actual: Color, picked: Color) =>
-  <A,>(
-    alg: Div<A> & Str<A> & Fold<A> & ColoredBackground<A>,
-  ): A =>
-  alg.fold([
-    alg.div({className: "colored-background comparison"})([
-      alg.ColoredBackground(actual,alg.str(`Actual color ${colorToCode(actual)}`)),
-    ]),
-    alg.div({className: "colored-background comparison"})([
-      alg.ColoredBackground(
-        picked,
-        alg.str(`Your color ${colorToCode(picked)}`),
-      ),
-    ]),
-  ])
-
-// difficulty picker
-
-
-namespace Elements {
-
-  export const colorsComparison: ColorsComparison<ReactElement> = {
-    ColorsComparison: (actual,picked) =>
-      <ColorsComparison actual={actual} picked={picked}/>
-  }
-
-}

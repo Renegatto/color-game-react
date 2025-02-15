@@ -22,8 +22,8 @@ export type GameRoundState = DifficultyState
   & PickedColorState
   & Current<GuessedColorState>
 
-export const GameRound: FC<GameRoundProps> = ({state,restartGame,difficulty}) => {
-  return GameRoundFT<GameRoundState>(restartGame,state,difficulty)({
+export const GameRound: FC<GameRoundProps> = ({state,restartGame,difficulty}) =>
+  GameRoundFT<GameRoundState>(restartGame,state,difficulty)({
     ...Basics.Elements.basic,
     RestartButton: restartGame => <RestartButton restartGame={restartGame}/>,
     PickColorButton: onPickColor => <PickColorButton onPickColor={onPickColor}/>,
@@ -33,7 +33,6 @@ export const GameRound: FC<GameRoundProps> = ({state,restartGame,difficulty}) =>
     ...colorsComparison,
     ...infoBar,
   })
-}
 
 export const GameRoundFT = <S,>(
   restartGame: () => void,

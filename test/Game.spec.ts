@@ -1,4 +1,4 @@
-import { ColorPickerFT } from "@/app/components/ColorPicker.tsx";
+import { ColorPickerFT } from "@/app/ColorPicker/index.tsx";
 import { DEFAULT_COLOR, GameFT, GameRoundFT, GameState, OngoingGameState, Outcome } from "../src/app/Game.tsx"
 import { expect, test} from "@jest/globals"
 import { None, Some } from "@/app/Utils.ts";

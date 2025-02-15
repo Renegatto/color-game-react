@@ -4,7 +4,7 @@ import { Color, colorToCode, Current, eachIsClose, State, randomColor, Some, Non
 import { Div, Empty, Fold, Input, Str, UseDebounce, UseEffect, UsePeek, UseState } from "./basics";
 import * as Basics from "./basics"
 import { Exhibit, useExhibitedState, usePeek } from "./Hooks";
-import { ColorPicker } from "./components/ColorPicker";
+import { ColorPicker } from "./ColorPicker";
 
 export const DEFAULT_COLOR: Color = { r: 0, g: 0, b: 0 }
 const DEFAULT_DIFFICULTY = 10

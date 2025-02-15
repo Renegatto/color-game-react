@@ -5,6 +5,7 @@ import { Div, Empty, Fold, Input, Str, UseDebounce, UseEffect, UsePeek, UseState
 import * as Basics from "./basics"
 import { Exhibit, useExhibitedState, usePeek } from "./Hooks";
 import { ColorPicker } from "./ColorPicker";
+import { InfoBar, infoBar } from "./InfoBar";
 
 export const DEFAULT_COLOR: Color = { r: 0, g: 0, b: 0 }
 const DEFAULT_DIFFICULTY = 10
@@ -42,7 +43,7 @@ export const OngoingGameState: OngoingGameStateAlg<OngoingGameState> = {
   })
 }
 
-const displayDifficulty = (difficulty: number): string =>
+export const displayDifficulty = (difficulty: number): string =>
   `${difficulty}/255`
 
 // Shared state
@@ -179,7 +180,7 @@ const GameRound: FC<GameRoundProps> = ({state,restartGame,difficulty}) => {
     ...Elements.difficultyPicker,
     ...Elements.coloredBackground,
     ...Elements.colorsComparison,
-    ...Elements.infoBar,
+    ...infoBar,
   })
 }
 type GameRoundState = DifficultyState
@@ -286,44 +287,6 @@ const RestartBtn: FC<{ restartGame: () => void }> = ({restartGame}) =>
   >
     Restart
   </button>
-
-// info bar
-
-type InfoBar<A> = {
-  InfoBar: (
-    state: Current<GameStateState>,
-    difficulty: number,
-  ) => A,
-}
-const InfoBar: FC<{state: Current<GameStateState>, difficulty: number}> =
-  ({state,difficulty}) => InfoBarFT(state,difficulty)(Basics.Elements.basic)
-export const InfoBarFT =
-  ({ GameState } : Current<GameStateState>,
-    difficulty: number,
-  ) =>
-  <A,>(alg: Div<A> & Str<A>): A =>
-  alg.div({className: "info-bar"})([
-    GameState.current.match({
-      playing: alg.div({hidden: true})([]),
-      ended: (outcome, difference, _) =>
-        alg.div({})([
-          alg.str(outcome.match({
-            victory: "Great job!",
-            defeat: "Wrong!",
-          })),
-          alg.str(`Difference is ${Math.round(difference)}`),
-        ]),
-    }),
-    alg.div({})([
-      alg.str(`Difficulty: ${
-        displayDifficulty(GameState.current.match({
-          playing: difficulty,
-          // we only display difficulty AT THE MOMENT game was over
-          ended: (_out, _diff, _color, difficulty) => difficulty,
-        }))
-      }`),
-    ]),
-  ])
 
 // colors comparison
 
@@ -435,9 +398,6 @@ namespace Elements {
   export const coloredBackground: ColoredBackground<ReactElement> = {
     ColoredBackground: (color,child) =>
     <ColoredBackground color={color} child={child}/>
-  }
-  export const infoBar: InfoBar<ReactElement> = {
-    InfoBar: (state,difficulty) => <InfoBar state={state} difficulty={difficulty}/>
   }
   export const colorsComparison: ColorsComparison<ReactElement> = {
     ColorsComparison: (actual,picked) =>

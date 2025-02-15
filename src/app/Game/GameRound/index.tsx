@@ -6,6 +6,7 @@ import { Color, colorToCode, Current, eachIsClose, None, Some } from "../../Util
 import { DifficultyState, GameStateState, GuessedColorState, Outcome, PickedColorState } from ".."
 import { difficultyPicker, DifficultyPicker } from "../DifficultyPicker"
 import { infoBar, InfoBar } from "../InfoBar"
+import { ColoredBackground, coloredBackground } from "./ColoredBackground"
 
 export type GameRoundProps = {
   restartGame: () => void,
@@ -25,7 +26,7 @@ export const GameRound: FC<GameRoundProps> = ({state,restartGame,difficulty}) =>
     PickColorBtn: onPickColor => <PickColorBtn onPickColor={onPickColor}/>,
     ...colorPicker,
     ...difficultyPicker,
-    ...Elements.coloredBackground,
+    ...coloredBackground,
     ...Elements.colorsComparison,
     ...infoBar,
   })
@@ -140,7 +141,7 @@ type ColorsComparison<A> = {
 const ColorsComparison: FC<{actual: Color,picked: Color}> =
   ({actual,picked}) => ColorsComparisonFT(actual,picked)({
     ...Basics.Elements.basic,
-    ...Elements.coloredBackground,
+    ...coloredBackground,
   })
 export const ColorsComparisonFT =
   (actual: Color, picked: Color) =>
@@ -159,31 +160,11 @@ export const ColorsComparisonFT =
     ]),
   ])
 
-// colored background
-
-type ColoredBackground<A> = {
-  ColoredBackground: (color: Color, child: A) => A,
-}
-const ColoredBackground: FC<{color: Color,child: ReactElement}> =
-  ({color,child}) => ColoredBackgroundFT(color,child)(Basics.Elements.basic)
-
-export const ColoredBackgroundFT =
-  <A,>(color: Color, child: A) =>
-  (alg: Div<A>): A =>
-  alg.div( {
-    className: "colored-background background",
-    style: {backgroundColor: colorToCode(color)},
-  })
-  ([child])
-
 // difficulty picker
 
 
 namespace Elements {
-  export const coloredBackground: ColoredBackground<ReactElement> = {
-    ColoredBackground: (color,child) =>
-    <ColoredBackground color={color} child={child}/>
-  }
+
   export const colorsComparison: ColorsComparison<ReactElement> = {
     ColorsComparison: (actual,picked) =>
       <ColorsComparison actual={actual} picked={picked}/>

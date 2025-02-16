@@ -1,12 +1,27 @@
 import { FC, ReactElement } from "react"
 import {Option} from "../../Utils"
+import styles from "./styles.module.scss"
 
 export type GhostSlider<A> = {
-  GhostSlider: (value: Option<number>) => A,
+  GhostSlider: (
+    value: Option<number>,
+    child: (n: number) => A,
+  ) => A,
 }
-export const GhostSlider: FC<{ value: Option<number> }> = ({ value }) =>
+type GhostSliderProps = {
+  value: Option<number>,
+  child: (n: number) => ReactElement,
+}
+export const GhostSlider: FC<GhostSliderProps> = ({ value, child }) =>
   <>
-    <div className="slidecontainer ghost">
+    <div className={`${styles["slidecontainer"]} ${styles["ghost"]}`}>
+      <div>
+        { value.match({
+            none: <></>,
+            some: n => child(n)
+          })
+        }
+      </div>
       <input
         type="range"
         disabled={true}
@@ -19,11 +34,11 @@ export const GhostSlider: FC<{ value: Option<number> }> = ({ value }) =>
         min="0"
         max="255"
         value={value.match({ some: x => x, none: -1 })}
-        className="slider ghost"
+        className={`${styles["slider"]} ${styles["ghost"]}`}
       />
     </div>
   </>
 
 export const ghostSlider: GhostSlider<ReactElement> = {
-  GhostSlider: value => <GhostSlider value={value}/>,
+  GhostSlider: (value,child) => <GhostSlider value={value} child={child}/>,
 }

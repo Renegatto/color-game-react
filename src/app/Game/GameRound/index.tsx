@@ -82,7 +82,7 @@ export const GameRoundFT = <S,>(
   return alg.div({className: "game-round"})([
     alg.ColorPicker({
       disabledWith: GameState.current.match({
-        ended: outcome => Some({ actual: actualColor, outcome }),
+        ended: (outcome,_diff,picked) => Some({ actual: actualColor, picked, outcome }),
         playing: None(),
       }),
       state,

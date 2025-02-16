@@ -6,7 +6,6 @@ import { Div, Empty, Fold, Str } from "../../basics";
 import * as Basics from "../../basics"
 import { ColorSlider, colorSlider } from "./ColorSlider";
 import { diff, Diff } from "./GhostSlider";
-import styles from "./styles.module.scss"
 
 type RGB<A> = { r: A, g: A, b: A }
 export type RGBComponentLens<C extends string> = <A,B>() =>
@@ -76,7 +75,6 @@ export const ColorPickerFT = <S,>(
     alg.ColorSlider(
       disabled,
       component,
-      //n => alg.str(`${colorName(component)}: ${n}`),
       state,
     );
 

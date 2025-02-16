@@ -15,7 +15,7 @@ export const SliderTemplate: FC<{
     min={0}
     max={255}
     defaultValue={defaultValue}
-    onValueChange={x => onValueChange(Array.isArray(x) ? x[0]! : x)}
+    onValueCommitted={x => onValueChange(Array.isArray(x) ? x[0]! : x)}
   >
     <Slider.Control className={styles["Control"]!}>
       <Slider.Track className={styles["Track"]!}>

@@ -9,14 +9,13 @@ export type ColorSlider<S,A> = {
   ColorSlider: (
     disabled: boolean,
     whoami: RGBComponentLens<string>,
-    child: (current: number) => A,
     state: S,
   ) => A,
 }
 
 type ColorSliderProps<S> = {
   disabled: boolean,
-  child: (current: number) => ReactElement,
+ // child: (current: number) => ReactElement,
   color: 'red' | 'green' | 'blue',
   state: S,
 }
@@ -25,7 +24,6 @@ const ColorSlider: FC<ColorSliderProps<{exhibit: Exhibit<number>}>> =
   ({ disabled, state: {exhibit},color }) => {
 
   const [component,setComponent] = useExhibitedState(125, exhibit)
-
   const debounce = useDebounce(10)
   return <>
     <div className={`${styles["slidecontainer"]} ${styles["normal"]}`}>
@@ -34,7 +32,10 @@ const ColorSlider: FC<ColorSliderProps<{exhibit: Exhibit<number>}>> =
         disabled={disabled}
         defaultValue={component}
         onValueChange={
-          n => debounce(() => setComponent(n))
+          n => debounce(() => {
+            console.log("set ",n)
+            setComponent(n)
+          })
         }
         className={styles["slider"]!}
         color={color}
@@ -44,7 +45,7 @@ const ColorSlider: FC<ColorSliderProps<{exhibit: Exhibit<number>}>> =
 }
 type RGBColor = 'red' | 'green' | 'blue'
 export const colorSlider: ColorSlider<PickedColorState,ReactElement> = {
-  ColorSlider: (disabled, whoami, child, {PickedColor}) =>
+  ColorSlider: (disabled, whoami, {PickedColor}) =>
     <ColorSlider
       disabled={disabled}
       state={{
@@ -60,6 +61,5 @@ export const colorSlider: ColorSlider<PickedColorState,ReactElement> = {
         g: 'green',
         b: 'blue',
       })}
-      child={child}
     />,
 }

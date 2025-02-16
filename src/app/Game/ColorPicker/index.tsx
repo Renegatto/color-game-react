@@ -5,7 +5,7 @@ import { Outcome, PickedColorState } from "..";
 import { Div, Empty, Fold, Str } from "../../basics";
 import * as Basics from "../../basics"
 import { ColorSlider, colorSlider } from "./ColorSlider";
-import { GhostSlider, ghostSlider } from "./GhostSlider";
+import { diff, Diff } from "./GhostSlider";
 import styles from "./styles.module.scss"
 
 type RGB<A> = { r: A, g: A, b: A }
@@ -19,23 +19,23 @@ const withG: RGBComponentLens<'g'> = () =>
 const withB: RGBComponentLens<'b'> = () =>
   Lens.property("b")
 
-const colorName = (component: RGBComponentLens<'r' | 'g' | 'b'>): string =>
-  component<string,string>().get({
-    r: "R",
-    g: "G",
-    b: "B",
+const colorName = (component: RGBComponentLens<'r' | 'g' | 'b'>): 'red' | 'green' | 'blue' =>
+  component<'red' | 'green' | 'blue','red' | 'green' | 'blue'>().get({
+    r: "red",
+    g: "green",
+    b: "blue",
   })
 
 export type ColorPicker<S,A> = {
   ColorPicker: (
     props: {
-      disabledWith: Option<{ actual: Color, outcome: Outcome }>,
+      disabledWith: Option<{ actual: Color, picked: Color, outcome: Outcome }>,
       state: S,
     },
   ) => A,
 }
 type ColorPickerProps = {
-  disabledWith: Option<{actual: Color,outcome: Outcome}>,
+  disabledWith: Option<{actual: Color, picked: Color, outcome: Outcome}>,
   state: PickedColorState,
 }
 export const ColorPicker: FC<ColorPickerProps> = (
@@ -44,26 +44,31 @@ export const ColorPicker: FC<ColorPickerProps> = (
   ColorPickerFT(props.disabledWith,props.state)({
     ...Basics.Elements.basic,
     ...colorSlider,
-    ...ghostSlider,
+    ...diff,
   })
 
 export const ColorPickerFT = <S,>(
-    disabledWith: Option<{ actual: Color, outcome: Outcome }>,
+    disabledWith: Option<{ actual: Color, picked: Color, outcome: Outcome }>,
     state: S,
   ) =>
-  <A,>(alg: Div<A> & Str<A> & Empty<A> & Fold<A> & ColorSlider<S,A> & GhostSlider<A>): A => {
+  <A,>(alg: Div<A> & Str<A> & Empty<A> & Fold<A> & ColorSlider<S,A> & Diff<A>): A => {
 
   const disabled = disabledWith.match({
     some: () => true,
     none: false
   })
-  const drawGhostSlider = (component: RGBComponentLens<'r' | 'g' | 'b'>): A =>
-    alg.GhostSlider(
+  const drawDiff = (component: RGBComponentLens<'r' | 'g' | 'b'>): A =>
+    alg.Diff(
       disabledWith.match({
       none: None(),
-      some: ({ actual }) => Some(component<number,number>().get(actual)),
+      some: ({ actual, picked }) => Some({
+          actual:
+            component<number,number>().get(actual),
+          picked:
+            component<number,number>().get(picked),
+        }),
       }),
-      n => alg.str(`${colorName(component)}: ${n}`),
+      colorName(component),
     )
   const drawColorSlider = (
     component: RGBComponentLens<'r' | 'g' | 'b'>,
@@ -71,19 +76,9 @@ export const ColorPickerFT = <S,>(
     alg.ColorSlider(
       disabled,
       component,
-      n => alg.str(`${colorName(component)}: ${n}`),
+      //n => alg.str(`${colorName(component)}: ${n}`),
       state,
     );
-
-  const drawSlidersPair = (
-    component: RGBComponentLens<'r' | 'g' | 'b'>,
-  ): A =>
-    alg.fold([
-      alg.div({className: styles["slider-pair-container"]})([
-        drawColorSlider(component),
-        drawGhostSlider(component),
-      ])
-    ]);
 
   const whenDisabled = (child: (subclass: string) => A): A =>
     disabledWith.match({
@@ -98,9 +93,11 @@ export const ColorPickerFT = <S,>(
     alg.div({className: `color-picker ${subclass}`})([])
   console.log("color picker update")
   return alg.div({className: "color-picker"})([
-    drawSlidersPair(withR),
-    drawSlidersPair(withG),
-    drawSlidersPair(withB),
+    ...[withR,withG,withB].map(
+      component => disabled
+      ? drawDiff(component)
+      : drawColorSlider(component)
+    ),
     whenDisabled(overlayOnDisabled),
   ])
 }

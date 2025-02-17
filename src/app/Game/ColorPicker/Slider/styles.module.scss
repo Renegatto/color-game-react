@@ -17,7 +17,7 @@
 }
 
 .Thumb {
-  @include Slider.slider-Thumb;
+  @include Slider.slider-ThinThumb;
 }
 .Value {
   @include Slider.slider-Value;

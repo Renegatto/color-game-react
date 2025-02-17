@@ -28,13 +28,10 @@ export const SliderTemplate: FC<{
           }}
         />
         <Slider.Thumb
-          className={
-            `${styles["Thumb"]!}\
-            \ ${disabled ? styles["disabled"]! : ''}`
-          }
+          className={styles["Thumb"]!}
           disabled={disabled}
         >
-        <Slider.Value className={styles["Value"]!}/>
+          <Slider.Value className={styles["Value"]!}/>
         </Slider.Thumb>
       </Slider.Track>
     </Slider.Control>

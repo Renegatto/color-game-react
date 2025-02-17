@@ -1,5 +1,10 @@
 @use "../../../styles/slider-mixins.scss" as Slider;
 
+.slider {
+  @include Slider.slider;
+  width: auto;
+}
+
 .Control { 
   @include Slider.slider-Control;
 }
@@ -17,8 +22,9 @@
 }
 
 .Thumb {
-  @include Slider.slider-Thumb;
+  @include Slider.slider-ThinThumb;
 }
 .Value {
   @include Slider.slider-Value;
+  margin-top: 1rem;
 }

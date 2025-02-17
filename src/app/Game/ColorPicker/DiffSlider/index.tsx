@@ -23,10 +23,9 @@ export const DiffSlider: FC<{
     >
       <Slider.Value
         className={styled(['Value','actual'])}
-        children={(values) =>
-          <>{actualFirst ? values[0]! : values[1]!}</>
-        }
-      />
+      >{ values =>
+        <>{actualFirst ? values[0]! : values[1]!}</>
+      }</Slider.Value>
     </Slider.Thumb>
   const pickedThumb =
     <Slider.Thumb
@@ -35,10 +34,10 @@ export const DiffSlider: FC<{
     >
       <Slider.Value
         className={styled(['Value','picked'])}
-        children={(values) =>
-          <>{actualFirst ? values[1]! : values[0]!}</>
-        }
-      />
+      >{ values =>
+        <>{actualFirst ? values[1]! : values[0]!}</>
+      }
+      </Slider.Value>
     </Slider.Thumb>
   return <Slider.Root
     className={`${className}`}

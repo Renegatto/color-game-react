@@ -1,5 +1,5 @@
 import { FC, ReactElement } from "react"
-import { DEFAULT_DIFFICULTY, DifficultyState, displayDifficulty } from "."
+import { DifficultyState, displayDifficulty } from "."
 import * as Basics from "../basics"
 import { Exhibit, useExhibitedState } from "../Hooks"
 import { Div, Input, Str, UseDebounce } from "../basics"
@@ -11,8 +11,8 @@ export type DifficultyPicker<S,A> = {
 const DifficultyPicker: FC<{state: DifficultyState}> =
   ({state}) => DifficultyPickerFT(state)({
     ...Basics.Elements.basic,
-    useExhibitedState: (initial,exhibit,cont) =>
-      cont(useExhibitedState(initial,exhibit)),
+    useExhibitedState: (exhibit,cont) =>
+      cont(useExhibitedState(exhibit)),
     extractOwnState: state => state.Difficulty.exhibit
   })
 
@@ -25,7 +25,6 @@ const DifficultyPickerFT = <S,>(state: S) =>
       & { extractOwnState: (state: S) => Exhibit<number> }
     ): A =>
     alg.useExhibitedState(
-      DEFAULT_DIFFICULTY,
       alg.extractOwnState(state),
       ([difficulty,setDifficulty]) =>
         alg.useDebounce(10, debounce =>

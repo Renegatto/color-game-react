@@ -6,7 +6,7 @@ import * as Basics from "../basics"
 import { Exhibit, usePeek } from "../Hooks";
 import { GameRound, GameRoundFT, GameRoundProps, GameRoundState } from "./GameRound";
 
-export const DEFAULT_COLOR: Color = { r: 0, g: 0, b: 0 }
+export const DEFAULT_COLOR: Color = { r: 127, g: 127, b: 127 }
 export const DEFAULT_DIFFICULTY = 10
 
 // Outcome datatype

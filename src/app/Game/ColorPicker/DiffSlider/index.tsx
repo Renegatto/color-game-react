@@ -55,8 +55,10 @@ export const DiffSlider: FC<{
             `color-mix(in srgb, ${color}, grey 50%)`
           }}
         />
-        {actualThumb}
-        {pickedThumb}
+        {actualFirst
+          ? <>{actualThumb}{pickedThumb}</>
+          : <>{pickedThumb}{actualThumb}</>
+        }
       </Slider.Track>
     </Slider.Control>
   </Slider.Root>

@@ -1,8 +1,8 @@
 import { FC, ReactElement } from "react"
-import { DifficultyState, displayDifficulty } from "."
-import * as Basics from "../basics"
-import { Exhibit, useExhibitedState } from "../Hooks"
-import { Div, Input, Str, UseDebounce } from "../basics"
+import { DifficultyState, displayDifficulty } from ".."
+import * as Basics from "../../basics"
+import { Exhibit, useExhibitedState } from "../../Hooks"
+import { Div, Input, Str, UseDebounce } from "../../basics"
 
 export type DifficultyPicker<S,A> = {
   DifficultyPicker: (props: { state: S }) => A,

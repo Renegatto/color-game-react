@@ -1,4 +1,4 @@
-@use "../../../../styles/slider-mixins.scss" as Slider;
+@use "../../../styles/slider-mixins.scss" as Slider;
 
 .Control { 
   @include Slider.slider-Control;

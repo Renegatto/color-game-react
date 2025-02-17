@@ -26,5 +26,5 @@
 }
 .Value {
   @include Slider.slider-Value;
-  margin-top: 1rem;
+  margin-top: Slider.$slider-height;
 }

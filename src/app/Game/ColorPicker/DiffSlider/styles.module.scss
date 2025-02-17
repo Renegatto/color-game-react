@@ -42,8 +42,6 @@
 .Value {
   @include Slider.slider-Value;
   margin-top: 0px;
-  &.actual {
-  }
   &.picked {
     color: rgba(0, 0, 0, 0);
   }

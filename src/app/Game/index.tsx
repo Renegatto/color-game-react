@@ -148,6 +148,7 @@ export const GameFT = <A,>(
         state.Difficulty.peek(difficulty =>
           state.RoundDifficulty.update(() => difficulty)
         )
+        state.PickedColor.reset()
         setKey((id: number) => (id + 1) % 2)
       }
       return alg.GameRound(
@@ -204,6 +205,7 @@ type UseColor<A> = {
 }
 export type ColorState = {
   currentColor: (cont: (c: Color) => void) => void,
+  reset: () => void,
   exhibitR: Exhibit<number>,
   exhibitG: Exhibit<number>,
   exhibitB: Exhibit<number>,
@@ -217,6 +219,11 @@ const useColor = (initialColor: Color): ColorState => {
     exhibitR: r.exhibit,
     exhibitG: g.exhibit,
     exhibitB: b.exhibit,
+    reset: () => {
+      r.exhibit.reportBack(r.exhibit.default)
+      g.exhibit.reportBack(g.exhibit.default)
+      b.exhibit.reportBack(b.exhibit.default)
+    },
     currentColor: (cont) => r.peek(r1 =>
       g.peek(g1 =>
         b.peek(b1 => cont({r:r1,g:g1,b:b1}))
